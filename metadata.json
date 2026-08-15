@@ -1,0 +1,6 @@
+{
+  "name": "Habify",
+  "description": "Habify - Make it your home. Intelligent Property Rental & Matching Platform with multi-role dashboards, weighted recommendation engine, and listing quality analytics in Rwanda.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

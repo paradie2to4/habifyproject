@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for Smart Rental Platform
+  postgres:
+    image: postgres:16-alpine
+    container_name: smart-rental-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: smart_rental_db
+      POSTGRES_USER: smart_rental_user
+      POSTGRES_PASSWORD: smart_rental_secret_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smart_rental_user -d smart_rental_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Java 21 Spring Boot Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smart-rental-backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smart_rental_db
+      SPRING_DATASOURCE_USERNAME: smart_rental_user
+      SPRING_DATASOURCE_PASSWORD: smart_rental_secret_password
+      JWT_SECRET: c21hcnRfcmVudGFsX2V4ZWN1dGl2ZV9zZWN1cmVfamF2YV8yMV9zcHJpbmdfYm9vdF9qd3Rfc2VjcmV0X2tleV8yMDI2
+      JWT_EXPIRATION_MS: 86400000
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    driver: local
