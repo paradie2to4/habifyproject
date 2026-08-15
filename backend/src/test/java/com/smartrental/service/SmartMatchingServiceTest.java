@@ -63,7 +63,7 @@ class SmartMatchingServiceTest {
         assertEquals(10, result.getFurnishedScore(), "Fully furnished satisfies requirement (10 points)");
         assertEquals(10, result.getAmenitiesScore(), "5/5 amenities overlap yields full 10 points");
         assertTrue(result.isAffordable(), "750k RWF on 2.5M income is 30% or under (Affordable)");
-        assertTrue(result.getHighlights().size() >= 4, "Should provide descriptive highlight reasons");
+        assertTrue(result.getMatchHighlights().size() >= 4, "Should provide descriptive highlight reasons");
     }
 
     @Test
@@ -131,7 +131,7 @@ class SmartMatchingServiceTest {
         MatchExplanationDto result = matchingService.evaluateMatch(pref, prop);
 
         assertEquals(6, result.getAmenitiesScore(), "3 of 5 amenities matched should yield 6 points (60%)");
-        assertTrue(result.getHighlights().stream().anyMatch(h -> h.contains("3 of your preferred amenities")));
+        assertTrue(result.getMatchHighlights().stream().anyMatch(h -> h.contains("3 of your preferred amenities")));
         assertTrue(result.getTradeOffs().stream().anyMatch(t -> t.contains("Backup Generator") && t.contains("Swimming Pool")));
     }
 
