@@ -39,11 +39,18 @@ CREATE USER smart_rental_user WITH PASSWORD 'smart_rental_secret_password';
 GRANT ALL PRIVILEGES ON DATABASE smart_rental_db TO smart_rental_user;
 ```
 
-### 3. Configure Environment Variables
-Copy `.env.example` to `.env`:
+### 3. Configure Environment Variables (split frontend / backend)
+
 ```bash
+# Frontend (Vercel later) — only VITE_* keys
 cp .env.example .env
+
+# Backend (Render + Neon later) — DB, JWT, CORS
+cp backend/.env.example backend/.env
+# Edit backend/.env with your Neon JDBC URL, user, and password
 ```
+
+See **[DEPLOY.md](./DEPLOY.md)** for Neon → Render → Vercel production setup.
 
 ### 4. Run the Backend
 ```bash
@@ -52,13 +59,14 @@ cd backend
 # Run automated tests to verify math & business logic
 mvn test
 
-# Start the Spring Boot application (default port: 8080)
+# Start the Spring Boot application (loads backend/.env, default port: 8080)
 mvn spring-boot:run
 ```
 
 The Spring Boot backend will start at: **`http://localhost:8080`**  
-- Swagger/OpenAPI docs: `http://localhost:8080/swagger-ui.html`
 - Health check: `http://localhost:8080/actuator/health`
+
+Then in another terminal from the repo root: `npm run dev` (proxies `/api` to the backend).
 
 ---
 
@@ -90,11 +98,13 @@ Use these accounts to explore role-specific experiences:
 
 | Role | Name | Email | Password | What to Test |
 | :--- | :--- | :--- | :--- | :--- |
-| **TENANT** | Claire Mukamana | `claire.tenant@habify.rw` | `password123` | Smart recommendations, custom weights, affordability gauge, viewing requests |
-| **LANDLORD** | Jean-Paul Nzeyimana | `jeanpaul.landlord@habify.rw` | `password123` | Listing quality score (0-100%), add/edit properties, approve/reject viewing tours |
-| **ADMIN** | Eric Habimana | `admin@habify.rw` | `admin123` | System metrics, user governance, fraudulent listing moderation |
+| **TENANT** | Claire Mukamana | `tenant@smartrental.rw` | `password123` | Smart recommendations, custom weights, affordability gauge, viewing requests |
+| **LANDLORD** | Jean-Paul Habimana | `landlord@smartrental.rw` | `password123` | Listing quality score (0-100%), add/edit properties, approve/reject viewing tours |
+| **ADMIN** | Alex Kayitare | `admin@smartrental.rw` | `password123` | System metrics, user governance, fraudulent listing moderation |
 
 *Tip: You can also use the interactive **Role Switcher Bar** at the top of the app to switch personas instantly with 1-click.*
+
+When both `npm run dev` and `mvn spring-boot:run` are up, the browse page shows a **Live API** badge and loads listings from PostgreSQL. If the backend is down, the UI falls back to local demo data automatically.
 
 ---
 

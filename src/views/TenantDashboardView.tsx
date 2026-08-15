@@ -32,16 +32,23 @@ export const TenantDashboardView: React.FC = () => {
     setCurrentTab
   } = useApp();
 
-  const firstName = (currentUser?.fullName || 'there').split(' ')[0];
+  if (!currentUser || currentUser.role !== 'TENANT') {
+    return (
+      <EmptyState
+        title="Tenant dashboard"
+        description="Sign in with a tenant account to see recommendations, saved homes, and viewings."
+        actionLabel="Sign in"
+        onAction={() => setCurrentTab('LOGIN')}
+      />
+    );
+  }
+
+  const firstName = (currentUser.fullName || 'there').split(' ')[0];
   const greeting = greetingForHour(new Date().getHours());
 
   const savedProperties = properties.filter(p => favorites.includes(p.id));
-  const myViewings = viewingRequests.filter(
-    v => v.tenantId === currentUser?.id || currentUser?.role === 'TENANT'
-  );
-  const myInquiries = inquiries.filter(
-    i => i.tenantId === currentUser?.id || currentUser?.role === 'TENANT'
-  );
+  const myViewings = viewingRequests.filter(v => v.tenantId === currentUser.id);
+  const myInquiries = inquiries.filter(i => i.tenantId === currentUser.id);
   const upcomingViewings = myViewings.filter(
     v => v.status === 'PENDING' || v.status === 'APPROVED' || (v.status as string) === 'CONFIRMED'
   );

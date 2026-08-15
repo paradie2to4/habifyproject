@@ -1,0 +1,10 @@
+# Backend local secrets — never commit
+.env
+.env.local
+*.pem
+target/
+.idea/
+*.iml
+.classpath
+.project
+.settings/

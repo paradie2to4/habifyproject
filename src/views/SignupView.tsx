@@ -18,7 +18,7 @@ export const SignupView: React.FC = () => {
 
           <h1 className="font-display text-3xl font-semibold text-navy-900">Create an account</h1>
           <p className="text-sm text-cream-600 mt-2 mb-6">
-            Tell us how you want to use Habify — as a tenant or a landlord.
+            Tell us how you want to use Habify — as a tenant, or as a landlord / landlady.
           </p>
 
           <AuthForm

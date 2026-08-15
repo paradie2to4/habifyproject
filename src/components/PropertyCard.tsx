@@ -1,6 +1,7 @@
 import React from 'react';
 import { Property } from '../types';
 import { useApp } from '../context/AppContext';
+import { PropertyImage } from './PropertyImage';
 import {
   MapPin,
   Heart,
@@ -69,11 +70,11 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
       onClick={handleCardClick}
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-cream-100">
-        <img
-          src={property.images[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80'}
+        <PropertyImage
+          images={property.images}
+          seedKey={property.id}
           alt={property.title}
           className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent pointer-events-none" />
 
@@ -141,28 +142,28 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           </p>
         )}
 
-        <div className="pt-2 flex items-center justify-between gap-3 border-t border-cream-100">
-          <div className="flex items-baseline gap-1">
-            <span className="text-lg font-bold text-navy-900">
+        <div className="pt-2 space-y-3 border-t border-cream-100">
+          <div className="flex items-baseline gap-1 min-w-0">
+            <span className="text-lg font-bold text-navy-900 truncate">
               {property.monthlyRent.toLocaleString()}
             </span>
-            <span className="text-xs font-medium text-cream-600">RWF / month</span>
+            <span className="text-xs font-medium text-cream-600 shrink-0">RWF / mo</span>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleViewingClick}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-cream-100 text-navy-900 hover:bg-cream-200 transition-all"
+              className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-cream-100 text-navy-900 hover:bg-cream-200 transition-all"
               title="Request Viewing"
             >
-              <Calendar className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">View</span>
+              <Calendar className="w-3.5 h-3.5 shrink-0" />
+              <span>View</span>
             </button>
             <button
               type="button"
               onClick={handleCardClick}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-navy-900 hover:bg-navy-800 text-white transition-all"
+              className="flex-1 inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-navy-900 hover:bg-navy-800 text-white transition-all"
             >
               Details
             </button>

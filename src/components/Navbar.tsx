@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ActiveTab } from '../types';
 import { HabifyLogo } from './HabifyLogo';
+import { ownerRoleLabel, roleDisplayName } from '../utils/roles';
 import {
   Compass,
   Sparkles,
@@ -33,14 +34,18 @@ export const Navbar: React.FC = () => {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Computed badge counts
+  // Computed badge counts — scoped to the signed-in user
   const pendingViewingsCount = currentUser?.role === 'LANDLORD'
     ? viewings.filter(v => v.landlordId === currentUser.id && v.status === 'PENDING').length
-    : viewings.filter(v => v.tenantId === currentUser?.id).length;
+    : currentUser
+      ? viewings.filter(v => v.tenantId === currentUser.id && (v.status === 'PENDING' || v.status === 'APPROVED')).length
+      : 0;
 
   const unreadInquiriesCount = currentUser?.role === 'LANDLORD'
     ? inquiries.filter(i => i.landlordId === currentUser.id && !i.isRead).length
-    : inquiries.filter(i => i.tenantId === currentUser?.id && i.reply).length;
+    : currentUser
+      ? inquiries.filter(i => i.tenantId === currentUser.id && Boolean(i.reply)).length
+      : 0;
 
   const pendingReportsCount = currentUser?.role === 'ADMIN'
     ? reports.filter(r => r.status === 'PENDING').length
@@ -130,31 +135,27 @@ export const Navbar: React.FC = () => {
               </>
             )}
 
-            {/* Landlord Hub */}
-            <button
-              id="nav-landlord-dashboard-btn"
-              onClick={() => {
-                if (currentUser?.role !== 'LANDLORD') {
-                  switchRole('LANDLORD');
-                } else {
-                  handleNavClick('LANDLORD_DASHBOARD');
-                }
-              }}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                currentTab === 'LANDLORD_DASHBOARD'
-                  ? 'text-white bg-navy-900'
-                  : 'text-cream-600 hover:text-navy-900 hover:bg-cream-100'
-              }`}
-              title="Access Landlord Hub - Manage properties, rent collection, viewing requests, and leases"
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              Landlord Hub
-              {pendingViewingsCount > 0 && currentUser?.role === 'LANDLORD' && (
-                <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-navy-900 bg-white rounded-full">
-                  {pendingViewingsCount}
-                </span>
-              )}
-            </button>
+            {/* Owner hub — landlords / landladies only */}
+            {currentUser?.role === 'LANDLORD' && (
+              <button
+                id="nav-landlord-dashboard-btn"
+                onClick={() => handleNavClick('LANDLORD_DASHBOARD')}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                  currentTab === 'LANDLORD_DASHBOARD'
+                    ? 'text-white bg-navy-900'
+                    : 'text-cream-600 hover:text-navy-900 hover:bg-cream-100'
+                }`}
+                title={`${ownerRoleLabel()} hub — manage listings, rent, viewings, and leases`}
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Owner Hub
+                {pendingViewingsCount > 0 && (
+                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-navy-900 bg-white rounded-full">
+                    {pendingViewingsCount}
+                  </span>
+                )}
+              </button>
+            )}
 
             {currentUser?.role === 'ADMIN' && (
               <button
@@ -198,27 +199,31 @@ export const Navbar: React.FC = () => {
 
           {/* Right Side Actions */}
           <div className="hidden sm:flex items-center gap-2">
-            {currentUser?.role !== 'ADMIN' && (
+            {currentUser && (
               <>
                 <button
                   id="open-preferences-tool-btn"
                   onClick={() => openModal('PREFERENCES')}
                   className="px-3 py-2 rounded-lg text-xs font-medium text-cream-600 bg-cream-100 hover:bg-cream-200 transition-colors flex items-center gap-1.5"
-                  title="Edit Tenant Matching Preferences"
+                  title={currentUser.role === 'TENANT' ? 'Edit profile & match preferences' : 'Edit profile'}
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5" />
-                  <span className="hidden lg:inline">Criteria</span>
+                  <span className="hidden lg:inline">
+                    {currentUser.role === 'TENANT' ? 'Criteria' : 'Profile'}
+                  </span>
                 </button>
 
-                <button
-                  id="open-affordability-tool-btn"
-                  onClick={() => openModal('AFFORDABILITY_CALCULATOR')}
-                  className="px-3 py-2 rounded-lg text-xs font-medium text-cream-600 bg-cream-100 hover:bg-cream-200 transition-colors flex items-center gap-1.5"
-                  title="Calculate Rent Affordability"
-                >
-                  <Calculator className="w-3.5 h-3.5" />
-                  <span className="hidden lg:inline">Affordability</span>
-                </button>
+                {currentUser.role === 'TENANT' && (
+                  <button
+                    id="open-affordability-tool-btn"
+                    onClick={() => openModal('AFFORDABILITY_CALCULATOR')}
+                    className="px-3 py-2 rounded-lg text-xs font-medium text-cream-600 bg-cream-100 hover:bg-cream-200 transition-colors flex items-center gap-1.5"
+                    title="Calculate Rent Affordability"
+                  >
+                    <Calculator className="w-3.5 h-3.5" />
+                    <span className="hidden lg:inline">Affordability</span>
+                  </button>
+                )}
               </>
             )}
 
@@ -246,7 +251,7 @@ export const Navbar: React.FC = () => {
                     {currentUser.fullName.split(' ')[0]}
                   </div>
                   <div className="text-[10px] text-cream-600">
-                    {currentUser.role}
+                    {roleDisplayName(currentUser.role)}
                   </div>
                 </div>
                 <button
@@ -343,26 +348,22 @@ export const Navbar: React.FC = () => {
             </>
           )}
 
-          <button
-            onClick={() => {
-              if (currentUser?.role !== 'LANDLORD') {
-                switchRole('LANDLORD');
-              } else {
-                handleNavClick('LANDLORD_DASHBOARD');
-              }
-            }}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-navy-900 hover:bg-cream-100 font-medium transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Landlord Hub</span>
-            </div>
-            {pendingViewingsCount > 0 && currentUser?.role === 'LANDLORD' && (
-              <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-terra-600 rounded-full">
-                {pendingViewingsCount}
-              </span>
-            )}
-          </button>
+          {currentUser?.role === 'LANDLORD' && (
+            <button
+              onClick={() => handleNavClick('LANDLORD_DASHBOARD')}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-navy-900 hover:bg-cream-100 font-medium transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <LayoutDashboard className="w-4 h-4" />
+                <span>Owner Hub</span>
+              </div>
+              {pendingViewingsCount > 0 && (
+                <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-terra-600 rounded-full">
+                  {pendingViewingsCount}
+                </span>
+              )}
+            </button>
+          )}
 
           {currentUser?.role === 'ADMIN' && (
             <button
@@ -384,20 +385,32 @@ export const Navbar: React.FC = () => {
             </button>
           )}
 
-          <div className="pt-2 border-t border-cream-300 grid grid-cols-2 gap-2">
-            <button
-              onClick={() => { openModal('PREFERENCES'); setMobileMenuOpen(false); }}
-              className="py-2 px-3 text-xs bg-cream-100 text-navy-900 font-medium rounded-lg hover:bg-cream-200 transition-colors"
-            >
-              Match Criteria
-            </button>
-            <button
-              onClick={() => { openModal('AFFORDABILITY_CALCULATOR'); setMobileMenuOpen(false); }}
-              className="py-2 px-3 text-xs bg-cream-100 text-navy-900 font-medium rounded-lg hover:bg-cream-200 transition-colors"
-            >
-              Affordability
-            </button>
-          </div>
+          {currentUser && (
+            <div className="pt-2 border-t border-cream-300 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => { openModal('PREFERENCES'); setMobileMenuOpen(false); }}
+                className="py-2 px-3 text-xs bg-cream-100 text-navy-900 font-medium rounded-lg hover:bg-cream-200 transition-colors"
+              >
+                {currentUser.role === 'TENANT' ? 'Match Criteria' : 'Edit Profile'}
+              </button>
+              {currentUser.role === 'TENANT' && (
+                <button
+                  onClick={() => { openModal('AFFORDABILITY_CALCULATOR'); setMobileMenuOpen(false); }}
+                  className="py-2 px-3 text-xs bg-cream-100 text-navy-900 font-medium rounded-lg hover:bg-cream-200 transition-colors"
+                >
+                  Affordability
+                </button>
+              )}
+              {currentUser.role === 'LANDLORD' && (
+                <button
+                  onClick={() => { openModal('ADD_EDIT_PROPERTY'); setMobileMenuOpen(false); }}
+                  className="py-2 px-3 text-xs font-semibold text-white bg-navy-900 rounded-lg"
+                >
+                  Add Property
+                </button>
+              )}
+            </div>
+          )}
 
           {currentUser ? (
             <button

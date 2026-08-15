@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { SEED_USERS } from '../data/seedData';
 import { KigaliAdminMap } from '../components/KigaliAdminMap';
 import { EmptyState } from '../components/EmptyState';
+import { roleDisplayName } from '../utils/roles';
 import {
   Users,
   Flag,
@@ -14,11 +15,14 @@ import {
 
 export const AdminDashboardView: React.FC = () => {
   const {
+    currentUser,
     properties,
     reports,
     updateReportStatus,
     deleteProperty,
-    getListingQuality
+    getListingQuality,
+    allUsers,
+    setCurrentTab
   } = useApp();
 
   const [activeAdminSubTab, setActiveAdminSubTab] = useState<'MAP' | 'MODERATION' | 'USERS'>('MAP');
@@ -30,16 +34,29 @@ export const AdminDashboardView: React.FC = () => {
     ? Math.round(properties.reduce((acc, p) => acc + getListingQuality(p).score, 0) / properties.length)
     : 0;
 
+  const directory = allUsers.length > 0 ? allUsers : SEED_USERS;
+
   const filteredUsers = useMemo(() => {
     const q = userQuery.trim().toLowerCase();
-    if (!q) return SEED_USERS;
-    return SEED_USERS.filter(
+    if (!q) return directory;
+    return directory.filter(
       u =>
         u.fullName.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
         u.role.toLowerCase().includes(q)
     );
-  }, [userQuery]);
+  }, [userQuery, directory]);
+
+  if (!currentUser || currentUser.role !== 'ADMIN') {
+    return (
+      <EmptyState
+        title="Admin area"
+        description="Sign in with an administrator account to view platform coverage, reports, and users."
+        actionLabel="Sign in"
+        onAction={() => setCurrentTab('LOGIN')}
+      />
+    );
+  }
 
   const tabs = [
     { id: 'MAP' as const, label: 'Coverage', icon: MapPin },
@@ -53,7 +70,7 @@ export const AdminDashboardView: React.FC = () => {
         <p className="text-sm text-cream-600">Administration</p>
         <h1 className="font-display text-3xl font-semibold text-navy-900 mt-1">Platform overview</h1>
         <p className="text-sm text-cream-700 mt-2 max-w-xl">
-          Listings, reports, and accounts — kept simple so you can act quickly.
+          Listings, reports, and accounts across the whole system.
         </p>
       </header>
 
@@ -68,7 +85,7 @@ export const AdminDashboardView: React.FC = () => {
         </div>
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-cream-600">Accounts</dt>
-          <dd className="mt-1 font-display text-2xl text-navy-900">{SEED_USERS.length}</dd>
+          <dd className="mt-1 font-display text-2xl text-navy-900">{directory.length}</dd>
         </div>
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-cream-600">Avg. listing quality</dt>
@@ -218,7 +235,7 @@ export const AdminDashboardView: React.FC = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 capitalize">{u.role.toLowerCase()}</td>
+                    <td className="px-4 py-3">{roleDisplayName(u.role)}</td>
                     <td className="px-4 py-3 text-cream-700">{u.phoneNumber || '—'}</td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-1.5 text-sage-800 text-xs font-medium">

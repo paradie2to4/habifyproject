@@ -3,6 +3,8 @@ import { useApp } from '../context/AppContext';
 import { Role, User } from '../types';
 import { SEED_USERS } from '../data/seedData';
 import { HabifyLogo } from './HabifyLogo';
+import { loginApi, registerApi, setAuthToken } from '../services/api';
+import { dashboardForRole, ownerRoleLabel } from '../utils/roles';
 import { LogIn, UserPlus, Building, User as UserIcon } from 'lucide-react';
 
 export type AuthMode = 'LOGIN' | 'REGISTER';
@@ -14,19 +16,13 @@ interface AuthFormProps {
   onSuccess?: () => void;
 }
 
-function dashboardForRole(role: Role) {
-  if (role === 'LANDLORD') return 'LANDLORD_DASHBOARD' as const;
-  if (role === 'ADMIN') return 'ADMIN_DASHBOARD' as const;
-  return 'TENANT_DASHBOARD' as const;
-}
-
 export const AuthForm: React.FC<AuthFormProps> = ({
   mode,
   onSwitchMode,
   compact = false,
   onSuccess
 }) => {
-  const { setCurrentUser, addToast, setCurrentTab } = useApp();
+  const { setCurrentUser, addToast, setCurrentTab, backendStatus } = useApp();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,6 +31,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   const [role, setRole] = useState<Role>('TENANT');
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const finish = (user: User, message: string) => {
     setCurrentUser(user);
@@ -43,7 +40,17 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     onSuccess?.();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const loginWithSeed = () => {
+    const found = SEED_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (found) {
+      setAuthToken(null);
+      finish(found, `Welcome back, ${found.fullName.split(' ')[0]} (local demo).`);
+      return true;
+    }
+    return false;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -52,11 +59,26 @@ export const AuthForm: React.FC<AuthFormProps> = ({
       return;
     }
 
-    if (mode === 'LOGIN') {
-      const found = SEED_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (found) {
-        finish(found, `Welcome back, ${found.fullName.split(' ')[0]}.`);
-      } else {
+    setSubmitting(true);
+    try {
+      if (mode === 'LOGIN') {
+        if (backendStatus === 'online') {
+          try {
+            const { user } = await loginApi(email.trim(), password);
+            finish(user, `Welcome back, ${user.fullName.split(' ')[0]}.`);
+            return;
+          } catch (err) {
+            if (loginWithSeed()) {
+              addToast('info', 'Signed in with local demo account (API login failed).');
+              return;
+            }
+            setError(err instanceof Error ? err.message : 'Invalid email or password.');
+            return;
+          }
+        }
+
+        if (loginWithSeed()) return;
+
         const newUser: User = {
           id: `usr-${Date.now().toString().slice(-4)}`,
           email: email.trim(),
@@ -66,25 +88,45 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           createdAt: new Date().toISOString()
         };
         finish(newUser, `Signed in as ${newUser.fullName}`);
-      }
-    } else {
-      if (!fullName.trim()) {
-        setError('Please enter your full name.');
-        return;
-      }
-      const newUser: User = {
-        id: `usr-${Date.now().toString().slice(-4)}`,
-        email: email.trim(),
-        fullName: fullName.trim(),
-        role,
-        phoneNumber: phone.trim() || undefined,
-        isActive: true,
-        createdAt: new Date().toISOString()
-      };
-      finish(newUser, `Account created for ${newUser.fullName}.`);
-    }
+      } else {
+        if (!fullName.trim()) {
+          setError('Please enter your full name.');
+          return;
+        }
 
-    void rememberMe;
+        if (backendStatus === 'online') {
+          try {
+            const { user } = await registerApi({
+              email: email.trim(),
+              password,
+              fullName: fullName.trim(),
+              phoneNumber: phone.trim() || undefined,
+              role
+            });
+            finish(user, `Account created for ${user.fullName}.`);
+            return;
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Could not create account.');
+            return;
+          }
+        }
+
+        const newUser: User = {
+          id: `usr-${Date.now().toString().slice(-4)}`,
+          email: email.trim(),
+          fullName: fullName.trim(),
+          role,
+          phoneNumber: phone.trim() || undefined,
+          isActive: true,
+          createdAt: new Date().toISOString()
+        };
+        finish(newUser, `Account created for ${newUser.fullName}.`);
+      }
+
+      void rememberMe;
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const idPrefix = compact ? 'modal' : mode.toLowerCase();
@@ -137,7 +179,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                 >
                   <Building className={`w-4 h-4 mb-2 ${role === 'LANDLORD' ? 'text-terra-700' : 'text-cream-500'}`} />
                   <div className="text-sm font-semibold text-navy-900">List a property</div>
-                  <div className="text-xs text-cream-600 mt-0.5">Landlord</div>
+                  <div className="text-xs text-cream-600 mt-0.5">{ownerRoleLabel()}</div>
                 </button>
               </div>
             </div>
@@ -209,9 +251,19 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           </p>
         )}
 
-        <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
+        >
           {mode === 'LOGIN' ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-          <span>{mode === 'LOGIN' ? 'Sign in' : 'Create account'}</span>
+          <span>
+            {submitting
+              ? 'Please wait…'
+              : mode === 'LOGIN'
+                ? 'Sign in'
+                : 'Create account'}
+          </span>
         </button>
 
         {onSwitchMode && (
@@ -254,8 +306,9 @@ export const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ className = '' }
       <HabifyLogo size="md" theme="dark" />
     </div>
     <div className="relative z-10 space-y-3">
-      <p className="font-display text-3xl sm:text-4xl font-semibold leading-tight">
-        Find Where You Belong.
+      <p className="font-display text-3xl sm:text-4xl font-semibold leading-tight text-white">
+        Find Where You <span className="text-terra-300">Belong</span>
+        <span className="text-terra-400">.</span>
       </p>
       <p className="text-sm text-cream-200 leading-relaxed max-w-sm">
         Homes across Rwanda, matched to how you actually live.

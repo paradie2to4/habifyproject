@@ -1,14 +1,37 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { PropertyCard } from '../components/PropertyCard';
+import { Pagination } from '../components/Pagination';
 import { SlidersHorizontal, Calculator } from 'lucide-react';
+
+const PAGE_SIZE = 6;
 
 export const RecommendationsView: React.FC = () => {
   const { properties, preferences, getMatchExplanation, openModal } = useApp();
+  const [page, setPage] = useState(1);
 
-  const recommendedProperties = [...properties]
-    .filter(p => p.isAvailable)
-    .sort((a, b) => getMatchExplanation(b).totalScore - getMatchExplanation(a).totalScore);
+  const recommendedProperties = useMemo(
+    () =>
+      [...properties]
+        .filter(p => p.isAvailable)
+        .sort((a, b) => getMatchExplanation(b).totalScore - getMatchExplanation(a).totalScore),
+    [properties, getMatchExplanation]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(recommendedProperties.length / PAGE_SIZE));
+
+  useEffect(() => {
+    setPage(1);
+  }, [preferences, recommendedProperties.length]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return recommendedProperties.slice(start, start + PAGE_SIZE);
+  }, [recommendedProperties, page]);
 
   const topMatch = recommendedProperties[0];
   const topMatchScore = topMatch ? getMatchExplanation(topMatch).totalScore : 0;
@@ -54,20 +77,39 @@ export const RecommendationsView: React.FC = () => {
         {preferences.preferredLocations.slice(0, 3).join(', ') || 'Any area'}
         {' · '}
         {preferences.minBedrooms}+ bedrooms
+        {' · '}
+        <strong className="font-semibold text-navy-900">{recommendedProperties.length}</strong> matches
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {recommendedProperties.map((property, idx) => (
-          <div key={property.id} className="relative">
-            {idx === 0 && (
-              <p className="absolute -top-3 left-4 z-20 px-2.5 py-1 rounded-md bg-navy-900 text-white text-[11px] font-semibold">
-                Strongest match · {topMatchScore}%
-              </p>
-            )}
-            <PropertyCard property={property} />
-          </div>
-        ))}
+        {paginated.map((property, idx) => {
+          const absoluteIndex = (page - 1) * PAGE_SIZE + idx;
+          return (
+            <div key={property.id} className="relative">
+              {absoluteIndex === 0 && (
+                <p className="absolute -top-3 left-4 z-20 px-2.5 py-1 rounded-md bg-navy-900 text-white text-[11px] font-semibold">
+                  Strongest match · {topMatchScore}%
+                </p>
+              )}
+              <PropertyCard property={property} />
+            </div>
+          );
+        })}
       </div>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        totalItems={recommendedProperties.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={next => {
+          setPage(next);
+          document.getElementById('recommendations-view-container')?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }}
+      />
     </div>
   );
 };

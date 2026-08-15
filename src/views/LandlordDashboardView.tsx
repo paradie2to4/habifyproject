@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Property, ViewingRequest, Inquiry, LeaseAgreement, RentPayment, MaintenanceTicket } from '../types';
+import { PropertyImage } from '../components/PropertyImage';
 import {
   Building,
   Building2,
@@ -49,8 +50,6 @@ type LandlordTab = 'PROPERTIES' | 'VIEWINGS' | 'INQUIRIES' | 'LEASES_PAYMENTS' |
 export const LandlordDashboardView: React.FC = () => {
   const {
     currentUser,
-    switchRole,
-    allUsers,
     properties,
     viewings,
     viewingRequests,
@@ -70,7 +69,8 @@ export const LandlordDashboardView: React.FC = () => {
     getListingQuality,
     sendInquiry,
     replyInquiry,
-    addToast
+    addToast,
+    setCurrentTab
   } = useApp();
 
   // Active sub-tab in Landlord Hub
@@ -123,30 +123,20 @@ export const LandlordDashboardView: React.FC = () => {
   const [calcMonthlyRent, setCalcMonthlyRent] = useState<number>(600000); // 600k RWF
   const [calcAnnualExpenses, setCalcAnnualExpenses] = useState<number>(720000); // Maintenance + property tax
 
-  // Safe data collections
+  // Data scoped to this landlord / landlady only
   const rawViewings = viewings || viewingRequests || [];
-  const myProperties = properties.filter(
-    p => p.landlordId === currentUser?.id || currentUser?.role === 'LANDLORD' || !p.landlordId
-  );
+  const myProperties = properties.filter(p => p.landlordId === currentUser?.id);
 
-  const myViewings = rawViewings.filter(
-    v => v.landlordId === currentUser?.id || currentUser?.role === 'LANDLORD'
-  );
+  const myViewings = rawViewings.filter(v => v.landlordId === currentUser?.id);
 
-  const myInquiries = inquiries.filter(
-    i => i.landlordId === currentUser?.id || currentUser?.role === 'LANDLORD'
-  );
+  const myInquiries = inquiries.filter(i => i.landlordId === currentUser?.id);
 
-  const myLeases = leases.filter(
-    l => l.landlordId === currentUser?.id || currentUser?.role === 'LANDLORD'
-  );
+  const myLeases = leases.filter(l => l.landlordId === currentUser?.id);
 
-  const myPayments = payments.filter(
-    p => myLeases.some(l => l.id === p.leaseId) || p.landlordName.includes('Jean-Paul') || currentUser?.role === 'LANDLORD'
-  );
+  const myPayments = payments.filter(p => myLeases.some(l => l.id === p.leaseId));
 
-  const myMaintenance = maintenanceTickets.filter(
-    m => myProperties.some(p => p.id === m.propertyId) || currentUser?.role === 'LANDLORD'
+  const myMaintenance = maintenanceTickets.filter(m =>
+    myProperties.some(p => p.id === m.propertyId)
   );
 
   // Computed Portfolio Stats
@@ -310,7 +300,21 @@ export const LandlordDashboardView: React.FC = () => {
   const paybackYears = netAnnualRent > 0 ? (calcPropValue / netAnnualRent).toFixed(1) : 'N/A';
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const firstName = (currentUser?.fullName || 'Jean-Paul').split(' ')[0];
+  const firstName = (currentUser?.fullName || 'there').split(' ')[0];
+
+  if (!currentUser || currentUser.role !== 'LANDLORD') {
+    return (
+      <div className="bg-white rounded-xl border border-cream-200 px-6 py-14 text-center">
+        <h3 className="font-display text-xl font-semibold text-navy-900">Owner dashboard</h3>
+        <p className="mx-auto mt-2 max-w-sm text-sm text-cream-600">
+          Sign in as a landlord or landlady to manage your listings, rent, and viewing requests.
+        </p>
+        <button type="button" onClick={() => setCurrentTab('LOGIN')} className="btn-primary mt-6">
+          Sign in
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div id="landlord-hub-container" className="space-y-8 text-left pb-16">
@@ -322,7 +326,7 @@ export const LandlordDashboardView: React.FC = () => {
             {firstName}
           </h1>
           <p className="mt-2 text-sm text-cream-700 max-w-xl">
-            Here&apos;s how your properties are performing.
+            Your landlord / landlady workspace — listings, rent, viewings, and leases.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -479,8 +483,9 @@ export const LandlordDashboardView: React.FC = () => {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3.5">
-                      <img
-                        src={prop.images[0]}
+                      <PropertyImage
+                        images={prop.images}
+                        seedKey={prop.id}
                         alt={prop.title}
                         className="w-20 h-20 rounded-lg object-cover shadow-xs flex-shrink-0"
                       />

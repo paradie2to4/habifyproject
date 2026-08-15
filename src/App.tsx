@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { ToastContainer } from './components/ToastContainer';
 import { HabifyLogo } from './components/HabifyLogo';
+import { canAccessTab, fallbackTabForUser } from './utils/roles';
 
 import { BrowseView } from './views/BrowseView';
 import { RecommendationsView } from './views/RecommendationsView';
@@ -24,13 +25,31 @@ import { InquiryModal } from './components/InquiryModal';
 import { ReportModal } from './components/ReportModal';
 import { AuthModal } from './components/AuthModal';
 import { PropertyCompareModal } from './components/PropertyCompareModal';
+import { HabifyChatbot } from './components/HabifyChatbot';
 
 import { Calculator } from 'lucide-react';
 
 const AppContent: React.FC = () => {
-  const { currentTab, activeModal, modalData, openModal, setCurrentTab } = useApp();
+  const { currentTab, activeModal, modalData, openModal, setCurrentTab, currentUser, addToast } = useApp();
+
+  // Role-based access: bounce unauthorized users to a safe screen
+  useEffect(() => {
+    if (canAccessTab(currentUser, currentTab)) return;
+
+    const next = fallbackTabForUser(currentUser, currentTab);
+    setCurrentTab(next);
+    if (currentUser) {
+      addToast('warning', 'That area is reserved for a different account role.');
+    } else if (next === 'LOGIN') {
+      addToast('info', 'Please sign in to continue.');
+    }
+  }, [currentTab, currentUser, setCurrentTab, addToast]);
 
   const renderActiveView = () => {
+    if (!canAccessTab(currentUser, currentTab)) {
+      return <BrowseView />;
+    }
+
     switch (currentTab) {
       case 'BROWSE':
         return <BrowseView />;
@@ -104,6 +123,7 @@ const AppContent: React.FC = () => {
       )}
 
       <ToastContainer />
+      <HabifyChatbot />
 
       <footer className="bg-navy-950 text-cream-200 border-t border-navy-900 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

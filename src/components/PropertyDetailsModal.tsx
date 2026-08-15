@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Property } from '../types';
+import { PropertyImage } from './PropertyImage';
+import { normalizeImageList } from '../utils/images';
 import {
   X,
   MapPin,
@@ -40,6 +42,11 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({ prop
     addToast
   } = useApp();
 
+  const gallery = useMemo(
+    () => normalizeImageList(property.images, property.id),
+    [property.images, property.id]
+  );
+
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const isFav = isFavorite(property.id);
   const match = getMatchExplanation(property);
@@ -75,11 +82,11 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({ prop
   };
 
   const nextImage = () => {
-    setActiveImageIdx((prev) => (prev + 1) % property.images.length);
+    setActiveImageIdx((prev) => (prev + 1) % gallery.length);
   };
 
   const prevImage = () => {
-    setActiveImageIdx((prev) => (prev - 1 + property.images.length) % property.images.length);
+    setActiveImageIdx((prev) => (prev - 1 + gallery.length) % gallery.length);
   };
 
   return (
@@ -134,13 +141,14 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({ prop
           
           {/* Main Gallery Carousel */}
           <div className="relative rounded-lg overflow-hidden bg-navy-900 aspect-16/9 group">
-            <img
-              src={property.images[activeImageIdx] || property.images[0]}
+            <PropertyImage
+              src={gallery[activeImageIdx] || gallery[0]}
+              seedKey={property.id}
               alt={property.title}
               className="w-full h-full object-cover"
             />
 
-            {property.images.length > 1 && (
+            {gallery.length > 1 && (
               <>
                 <button
                   onClick={prevImage}
@@ -158,22 +166,28 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({ prop
             )}
 
             <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-md bg-black/70 backdrop-blur text-white text-xs font-mono">
-              {activeImageIdx + 1} / {property.images.length}
+              {activeImageIdx + 1} / {gallery.length}
             </div>
           </div>
 
           {/* Thumbnails Row */}
-          {property.images.length > 1 && (
+          {gallery.length > 1 && (
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              {property.images.map((img, idx) => (
+              {gallery.map((img, idx) => (
                 <button
                   key={idx}
+                  type="button"
                   onClick={() => setActiveImageIdx(idx)}
                   className={`relative w-20 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
                     activeImageIdx === idx ? 'border-terra-600 scale-105' : 'border-transparent opacity-60 hover:opacity-100'
                   }`}
                 >
-                  <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                  <PropertyImage
+                    src={img}
+                    seedKey={`${property.id}-${idx}`}
+                    alt={`Thumbnail ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
                 </button>
               ))}
             </div>

@@ -29,6 +29,19 @@ import {
 import { PropertyMatchingEngine } from '../services/matchingEngine';
 import { ListingQualityService } from '../services/listingQualityService';
 import { AffordabilityCalculator } from '../services/affordabilityCalculator';
+import {
+  BackendStatus,
+  checkBackendHealth,
+  fetchProperties,
+  createPropertyApi,
+  updatePropertyApi,
+  deletePropertyApi,
+  createViewingRequestApi,
+  createInquiryApi,
+  setAuthToken
+} from '../services/api';
+import { dashboardForRole } from '../utils/roles';
+import { normalizeImageList } from '../utils/images';
 
 interface Toast {
   id: string;
@@ -42,6 +55,9 @@ interface AppContextType {
   setCurrentUser: (user: User | null) => void;
   switchRole: (role: 'TENANT' | 'LANDLORD' | 'ADMIN' | 'GUEST') => void;
   allUsers: User[];
+
+  // Backend connectivity
+  backendStatus: BackendStatus;
 
   // Tenant Preferences
   preferences: TenantPreferences;
@@ -161,7 +177,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [properties, setProperties] = useState<Property[]>(() => {
     const saved = localStorage.getItem('smartrental_properties');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* use default */ }
+      try {
+        const parsed = JSON.parse(saved) as Property[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(p => ({
+            ...p,
+            images: normalizeImageList(p.images, p.id || p.title || '')
+          }));
+        }
+      } catch (e) { /* use default */ }
     }
     return SEED_PROPERTIES;
   });
@@ -227,6 +251,51 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [modalData, setModalData] = useState<any>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [backendStatus, setBackendStatus] = useState<BackendStatus>('connecting');
+
+  // Connect to Spring Boot when available; fall back to local seed data
+  useEffect(() => {
+    let cancelled = false;
+
+    const pushToast = (type: Toast['type'], message: string) => {
+      const id = Math.random().toString(36).substring(2, 9);
+      setToasts(prev => [...prev, { id, type, message }]);
+      setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+      }, 4500);
+    };
+
+    (async () => {
+      const online = await checkBackendHealth();
+      if (cancelled) return;
+
+      if (!online) {
+        setBackendStatus('offline');
+        // Restore the rich local catalog if a previous live session left a thin API snapshot
+        setProperties(prev => (prev.length > 0 && prev.length < 8 ? SEED_PROPERTIES : prev));
+        return;
+      }
+
+      try {
+        const remote = await fetchProperties();
+        if (cancelled) return;
+        if (remote.length > 0) {
+          setProperties(remote);
+        }
+        setBackendStatus('online');
+        pushToast('success', `Connected to backend — loaded ${remote.length} live listings`);
+      } catch {
+        if (!cancelled) {
+          setBackendStatus('offline');
+          pushToast('warning', 'Backend reachable but listings failed to load — using local demo data');
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Sync to local storage for persistence across reloads
   useEffect(() => {
@@ -234,6 +303,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.setItem('smartrental_user', JSON.stringify(currentUser));
     } else {
       localStorage.removeItem('smartrental_user');
+      setAuthToken(null);
     }
   }, [currentUser]);
 
@@ -289,16 +359,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const switchRole = (role: 'TENANT' | 'LANDLORD' | 'ADMIN' | 'GUEST') => {
     if (role === 'GUEST') {
       setCurrentUser(null);
+      setAuthToken(null);
       setCurrentTab('BROWSE');
-      addToast('info', 'Switched to Public Guest View');
+      addToast('info', 'Signed out');
       return;
     }
     const found = allUsers.find(u => u.role === role);
     if (found) {
       setCurrentUser(found);
-      if (role === 'ADMIN') setCurrentTab('ADMIN_DASHBOARD');
-      else if (role === 'LANDLORD') setCurrentTab('LANDLORD_DASHBOARD');
-      else if (role === 'TENANT') setCurrentTab('TENANT_DASHBOARD');
+      setCurrentTab(dashboardForRole(found.role));
       addToast('success', `Logged in as ${found.fullName} (${found.role})`);
     }
   };
@@ -308,8 +377,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addToast('success', 'Rental preferences updated! Recalculated smart match recommendations.');
   };
 
-  const addProperty = (propData: Omit<Property, 'id' | 'createdAt' | 'updatedAt' | 'viewsCount' | 'inquiriesCount'>) => {
-    const newProperty: Property = {
+  const addProperty = async (propData: Omit<Property, 'id' | 'createdAt' | 'updatedAt' | 'viewsCount' | 'inquiriesCount'>) => {
+    const localProperty: Property = {
       ...propData,
       id: `prop-${Date.now().toString().slice(-4)}`,
       viewsCount: 1,
@@ -317,16 +386,49 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    setProperties(prev => [newProperty, ...prev]);
-    addToast('success', `Property "${newProperty.title}" successfully published!`);
+
+    if (backendStatus === 'online') {
+      try {
+        const created = await createPropertyApi(localProperty);
+        setProperties(prev => [created, ...prev]);
+        addToast('success', `Property "${created.title}" published to the live API`);
+        return;
+      } catch {
+        addToast('warning', 'API publish failed — saved locally instead');
+      }
+    }
+
+    setProperties(prev => [localProperty, ...prev]);
+    addToast('success', `Property "${localProperty.title}" successfully published!`);
   };
 
-  const updateProperty = (id: string, updates: Partial<Property>) => {
+  const updateProperty = async (id: string, updates: Partial<Property>) => {
+    const existing = properties.find(p => p.id === id);
+    const merged = existing ? { ...existing, ...updates, updatedAt: new Date().toISOString() } : null;
+
+    if (backendStatus === 'online' && merged) {
+      try {
+        const saved = await updatePropertyApi(id, merged);
+        setProperties(prev => prev.map(p => (p.id === id ? saved : p)));
+        addToast('success', 'Property listing updated on the live API');
+        return;
+      } catch {
+        addToast('warning', 'API update failed — saved locally instead');
+      }
+    }
+
     setProperties(prev => prev.map(p => (p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p)));
     addToast('success', 'Property listing updated successfully!');
   };
 
-  const deleteProperty = (id: string) => {
+  const deleteProperty = async (id: string) => {
+    if (backendStatus === 'online') {
+      try {
+        await deletePropertyApi(id);
+      } catch {
+        addToast('warning', 'API delete failed — removing locally');
+      }
+    }
     setProperties(prev => prev.filter(p => p.id !== id));
     addToast('info', 'Property listing removed.');
   };
@@ -366,6 +468,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       updatedAt: new Date().toISOString()
     };
     setViewings(prev => [newReq, ...prev]);
+
+    if (backendStatus === 'online') {
+      createViewingRequestApi(req).catch(() => {
+        addToast('warning', 'Viewing saved locally — API sync failed');
+      });
+    }
+
     addToast('success', 'Viewing request submitted to landlord! You will be notified upon confirmation.');
   };
 
@@ -389,6 +498,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setInquiries(prev => [newInq, ...prev]);
     // increment property inquiries count
     setProperties(prev => prev.map(p => p.id === inq.propertyId ? { ...p, inquiriesCount: p.inquiriesCount + 1 } : p));
+
+    if (backendStatus === 'online') {
+      createInquiryApi(inq).catch(() => {
+        addToast('warning', 'Inquiry saved locally — API sync failed');
+      });
+    }
+
     addToast('success', 'Inquiry message dispatched directly to the landlord!');
   };
 
@@ -613,6 +729,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     localStorage.removeItem('smartrental_leases');
     localStorage.removeItem('smartrental_payments');
     localStorage.removeItem('smartrental_maintenance');
+    setAuthToken(null);
 
     setCurrentUser(SEED_USERS[0]);
     setAllUsers(SEED_USERS);
@@ -637,6 +754,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setCurrentUser,
         switchRole,
         allUsers,
+        backendStatus,
         preferences,
         updatePreferences,
         properties,

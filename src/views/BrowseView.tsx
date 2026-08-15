@@ -1,14 +1,13 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { PropertyCard } from '../components/PropertyCard';
+import { Pagination } from '../components/Pagination';
 import {
   ALL_AMENITY_OPTIONS,
   RWANDA_PROVINCES,
   RWANDA_DISTRICTS_BY_PROVINCE,
-  RWANDA_LOCATIONS_DATA,
-  ALL_RWANDA_LOCATIONS
+  RWANDA_LOCATIONS_DATA
 } from '../data/seedData';
-import { PropertyType } from '../types';
 import {
   Search,
   MapPin,
@@ -30,6 +29,8 @@ const PROPERTY_TYPES: Array<{ value: string; label: string }> = [
   { value: 'DUPLEX', label: 'Duplex' }
 ];
 
+const PAGE_SIZE = 6;
+
 export const BrowseView: React.FC = () => {
   const {
     filteredAndSortedProperties,
@@ -38,8 +39,26 @@ export const BrowseView: React.FC = () => {
     resetFilters,
     openModal,
     currentUser,
-    setCurrentTab
+    setCurrentTab,
+    backendStatus
   } = useApp();
+
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedProperties.length / PAGE_SIZE));
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters, filteredAndSortedProperties.length]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paginatedProperties = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredAndSortedProperties.slice(start, start + PAGE_SIZE);
+  }, [filteredAndSortedProperties, page]);
 
   const handleProvinceSelect = (prov: string) => {
     setFilters(prev => ({
@@ -83,14 +102,17 @@ export const BrowseView: React.FC = () => {
           src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&auto=format&fit=crop&q=80"
           alt="Sunlit modern home with warm interiors"
           className="absolute inset-0 w-full h-full object-cover"
+          referrerPolicy="no-referrer"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-navy-950/90 via-navy-950/45 to-navy-950/20" />
         <div className="relative z-10 w-full p-6 sm:p-10 lg:p-12 text-left text-white">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cream-300 mb-3">
             Habify · Rwanda
           </p>
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-[3.25rem] font-semibold tracking-tight leading-[1.1] max-w-xl">
-            Find Where You Belong.
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-[3.25rem] font-semibold tracking-tight leading-[1.1] max-w-xl text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]">
+            Find Where You{' '}
+            <span className="text-terra-300">Belong</span>
+            <span className="text-terra-400">.</span>
           </h1>
           <p className="mt-4 text-sm sm:text-base text-cream-200 max-w-lg leading-relaxed">
             Discover rental homes matched to your budget, neighborhood, and the way you live.
@@ -447,6 +469,16 @@ export const BrowseView: React.FC = () => {
                   in {filters.selectedLocation || filters.selectedProvince}
                 </span>
               )}
+              {backendStatus === 'online' && (
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-sage-700 bg-sage-50 border border-sage-200 px-2 py-0.5 rounded-md">
+                  Live API
+                </span>
+              )}
+              {backendStatus === 'offline' && (
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-cream-700 bg-cream-50 border border-cream-200 px-2 py-0.5 rounded-md">
+                  Local demo
+                </span>
+              )}
             </div>
 
             {/* Sort Selection */}
@@ -469,11 +501,23 @@ export const BrowseView: React.FC = () => {
 
           {/* Properties Grid */}
           {filteredAndSortedProperties.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {filteredAndSortedProperties.map(property => (
-                <PropertyCard key={property.id} property={property} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                {paginatedProperties.map(property => (
+                  <PropertyCard key={property.id} property={property} />
+                ))}
+              </div>
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={filteredAndSortedProperties.length}
+                pageSize={PAGE_SIZE}
+                onPageChange={(next) => {
+                  setPage(next);
+                  document.getElementById('browse-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+              />
+            </>
           ) : (
             <div className="bg-white rounded-xl p-10 border border-cream-200 text-center space-y-3">
               <Building className="w-12 h-12 text-cream-300 mx-auto" />
