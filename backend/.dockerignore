@@ -1,0 +1,10 @@
+# Build context: backend/
+target/
+.git/
+.idea/
+*.iml
+.env
+.env.*
+!.env.example
+*.md
+.mvn/wrapper/maven-wrapper.jar
