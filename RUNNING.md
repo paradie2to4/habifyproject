@@ -108,7 +108,7 @@ When both `npm run dev` and `mvn spring-boot:run` are up, the browse page shows 
 
 **Production (no local machine required):**
 - Frontend: [https://habify-hkox.vercel.app](https://habify-hkox.vercel.app/)
-- Backend: [https://habify-1-vsl4.onrender.com](https://habify-1-vsl4.onrender.com)
+- Backend: [https://habify-zw0u.onrender.com](https://habify-zw0u.onrender.com)
 - See [DEPLOY.md](./DEPLOY.md) for env vars and CORS on Render/Vercel.
 
 ---

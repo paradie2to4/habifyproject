@@ -5,17 +5,19 @@ coverage/
 .DS_Store
 *.log
 
-# Environment files (keep examples)
+# Local secrets — never commit
 .env
-.env.*
-!.env.example
-!.env.production
-!.env.production.example
-!backend/.env.example
-backend/.env
-
-# Backend build / secrets
-backend/target/
+.env.local
+.env.*.local
 backend/.env
 backend/.env.local
+
+# Backend build
+backend/target/
 target/
+
+# Committed on purpose (public URLs only, no passwords):
+#   .env.example
+#   .env.production
+#   .env.production.example
+#   backend/.env.example

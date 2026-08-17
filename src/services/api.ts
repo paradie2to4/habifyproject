@@ -2,8 +2,17 @@ import { Property, PropertyType, Role, User, ViewingRequest, Inquiry } from '../
 import { RWANDA_LOCATIONS_DATA } from '../data/rwandaLocations';
 import { normalizeImageList } from '../utils/images';
 
-/** e.g. `/api` (local Vite proxy) or `https://habify-api.onrender.com/api` (Vercel → Render) */
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') || '/api';
+/** e.g. `/api` (local Vite proxy) or `https://habify-zw0u.onrender.com/api` (Vercel → Render) */
+function resolveApiBase(): string {
+  const raw = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() || '/api';
+  const stripped = raw.replace(/\/$/, '');
+  if (stripped.startsWith('http') && !/\/api$/i.test(stripped)) {
+    return `${stripped}/api`;
+  }
+  return stripped || '/api';
+}
+
+const API_BASE = resolveApiBase();
 
 function healthUrl(): string {
   if (API_BASE.startsWith('http')) {

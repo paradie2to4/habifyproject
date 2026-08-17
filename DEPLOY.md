@@ -5,8 +5,8 @@
 | Service | URL |
 | :--- | :--- |
 | **Frontend** | [https://habify-hkox.vercel.app](https://habify-hkox.vercel.app/) |
-| **Backend API** | [https://habify-1-vsl4.onrender.com](https://habify-1-vsl4.onrender.com) |
-| **Health check** | [https://habify-1-vsl4.onrender.com/actuator/health](https://habify-1-vsl4.onrender.com/actuator/health) |
+| **Backend API** | [https://habify-zw0u.onrender.com](https://habify-zw0u.onrender.com) |
+| **Health check** | [https://habify-zw0u.onrender.com/actuator/health](https://habify-zw0u.onrender.com/actuator/health) |
 
 The frontend production build reads **`VITE_API_BASE_URL`** from `.env.production` (also settable in Vercel).  
 The backend must allow the Vercel origin via **`CORS_ALLOWED_ORIGINS`** on Render.
@@ -74,7 +74,7 @@ Free Render services sleep when idle; first request after sleep can take ~30–6
 
 | Key | Value |
 | :--- | :--- |
-| `VITE_API_BASE_URL` | `https://habify-1-vsl4.onrender.com/api` |
+| `VITE_API_BASE_URL` | `https://habify-zw0u.onrender.com/api` |
 
 This is already in **`.env.production`** in the repo — Vercel picks it up on build.  
 You can also set the same value in Vercel → Project → Environment Variables (overrides the file).
@@ -117,7 +117,7 @@ mvn spring-boot:run  # http://localhost:8080
 
 | Variable | Local | Production |
 | :--- | :--- | :--- |
-| `VITE_API_BASE_URL` | `/api` | `https://habify-1-vsl4.onrender.com/api` |
+| `VITE_API_BASE_URL` | `https://habify-zw0u.onrender.com/api` | `https://habify-zw0u.onrender.com/api` |
 
 ### Backend (Render / `backend/.env`)
 
@@ -135,7 +135,7 @@ mvn spring-boot:run  # http://localhost:8080
 
 ## 6. Verify
 
-1. `https://YOUR-API.onrender.com/actuator/health` → `{"status":"UP"}`  
+1. `https://habify-zw0u.onrender.com/actuator/health` → `{"status":"UP"}`  
 2. Open Vercel site → browse should show **Live API** when the backend is awake  
 3. Login with demo users from `RUNNING.md`  
 
