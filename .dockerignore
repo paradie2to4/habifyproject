@@ -1,0 +1,25 @@
+# When building from repo root
+.git/
+.github/
+node_modules/
+dist/
+.idea/
+*.md
+.env
+.env.*
+!.env.example
+backend/target/
+backend/.env
+backend/.env.*
+!backend/.env.example
+src/
+public/
+assets/
+*.tsx
+*.ts
+!backend/**
+package.json
+package-lock.json
+vite.config.ts
+tsconfig.json
+vercel.json

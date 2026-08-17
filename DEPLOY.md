@@ -1,5 +1,18 @@
 # Deploy Habify — Neon (DB) · Render (API) · Vercel (Frontend)
 
+## Production URLs (live)
+
+| Service | URL |
+| :--- | :--- |
+| **Frontend** | [https://habify-hkox.vercel.app](https://habify-hkox.vercel.app/) |
+| **Backend API** | [https://habify-1-vsl4.onrender.com](https://habify-1-vsl4.onrender.com) |
+| **Health check** | [https://habify-1-vsl4.onrender.com/actuator/health](https://habify-1-vsl4.onrender.com/actuator/health) |
+
+The frontend production build reads **`VITE_API_BASE_URL`** from `.env.production` (also settable in Vercel).  
+The backend must allow the Vercel origin via **`CORS_ALLOWED_ORIGINS`** on Render.
+
+---
+
 ## Architecture
 
 ```
@@ -29,34 +42,25 @@ On Render, paste the same three values into the service Environment tab.
 
 ---
 
-## 2. Backend on Render
+## 2. Backend on Render (Docker)
 
-1. New → **Web Service** → connect this repo  
-   - Root directory / Docker context: **`backend`**  
-   - Dockerfile: **`backend/Dockerfile`**  
-   - Or use `render.yaml` at the repo root (Blueprint).
-2. Health check path: **`/actuator/health`**
-3. Set environment variables:
+### Recommended settings (Web Service → Docker)
 
-| Key | Required | Notes |
-| :--- | :---: | :--- |
-| `SPRING_DATASOURCE_URL` | yes | Neon JDBC URL with `?sslmode=require` |
-| `SPRING_DATASOURCE_USERNAME` | yes | Neon user |
-| `SPRING_DATASOURCE_PASSWORD` | yes | Neon password |
-| `SPRING_JPA_HIBERNATE_DDL_AUTO` | | `update` |
-| `SPRING_PROFILES_ACTIVE` | | `prod` |
-| `JWT_SECRET` | yes | Long random string (32+ chars) |
-| `JWT_EXPIRATION_MS` | | `86400000` (1 day) |
-| `CORS_ALLOWED_ORIGINS` | yes | Your Vercel URL(s), comma-separated |
-| `PORT` | | Set automatically by Render |
+| Setting | Value |
+| :--- | :--- |
+| Root Directory | `backend` |
+| Dockerfile Path | `./Dockerfile` |
+| Health Check Path | `/actuator/health` |
 
-Example `CORS_ALLOWED_ORIGINS` after Vercel is live:
+There is also a root `Dockerfile` if you leave Root Directory empty (builds `backend/` from the monorepo).
 
-```text
-https://habify.vercel.app,https://*.vercel.app,http://localhost:3000
-```
+### Environment variables (Render dashboard)
 
-4. Deploy → note the public URL, e.g. `https://habify-api.onrender.com`
+Paste your Neon JDBC values and CORS (see table in section 5). Render sets `PORT` automatically.
+
+### Or use the Blueprint
+
+Connect the repo and apply `render.yaml`, then fill in the `sync: false` secrets.
 
 Free Render services sleep when idle; first request after sleep can take ~30–60s.
 
@@ -70,11 +74,18 @@ Free Render services sleep when idle; first request after sleep can take ~30–6
 
 | Key | Value |
 | :--- | :--- |
-| `VITE_API_BASE_URL` | `https://habify-api.onrender.com/api` |
+| `VITE_API_BASE_URL` | `https://habify-1-vsl4.onrender.com/api` |
 
-Use your real Render hostname. Must include **`/api`**.
+This is already in **`.env.production`** in the repo — Vercel picks it up on build.  
+You can also set the same value in Vercel → Project → Environment Variables (overrides the file).
 
-4. Deploy. Then update Render `CORS_ALLOWED_ORIGINS` to include `https://your-app.vercel.app`.
+4. On **Render**, set `CORS_ALLOWED_ORIGINS` to:
+
+```text
+https://habify-hkox.vercel.app,https://*.vercel.app,http://localhost:3000,http://localhost:5173
+```
+
+Then redeploy the backend if you change CORS.
 
 `vercel.json` already rewrites SPA routes to `index.html`.
 
@@ -106,7 +117,7 @@ mvn spring-boot:run  # http://localhost:8080
 
 | Variable | Local | Production |
 | :--- | :--- | :--- |
-| `VITE_API_BASE_URL` | `/api` | `https://YOUR-API.onrender.com/api` |
+| `VITE_API_BASE_URL` | `/api` | `https://habify-1-vsl4.onrender.com/api` |
 
 ### Backend (Render / `backend/.env`)
 

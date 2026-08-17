@@ -1,27 +1,30 @@
-# Render Blueprint — Habify Spring Boot API
-# https://render.com/docs/blueprint-spec
+# Render Blueprint — Habify Spring Boot API (Docker)
+# https://dashboard.render.com → New → Blueprint
 services:
   - type: web
     name: habify-api
     runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    # Recommended: build only the backend folder
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
     plan: free
+    region: oregon
     healthCheckPath: /actuator/health
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: update
+      - key: JWT_EXPIRATION_MS
+        value: "86400000"
+      - key: JWT_SECRET
+        generateValue: true
+      # Set these manually in the Render dashboard (Neon + Vercel URL):
       - key: SPRING_DATASOURCE_URL
         sync: false
       - key: SPRING_DATASOURCE_USERNAME
         sync: false
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
-      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
-        value: update
-      - key: JWT_SECRET
-        generateValue: true
-      - key: JWT_EXPIRATION_MS
-        value: "86400000"
       - key: CORS_ALLOWED_ORIGINS
-        sync: false
+        value: https://habify-hkox.vercel.app,https://*.vercel.app,http://localhost:3000,http://localhost:5173

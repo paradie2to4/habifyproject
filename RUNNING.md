@@ -106,6 +106,11 @@ Use these accounts to explore role-specific experiences:
 
 When both `npm run dev` and `mvn spring-boot:run` are up, the browse page shows a **Live API** badge and loads listings from PostgreSQL. If the backend is down, the UI falls back to local demo data automatically.
 
+**Production (no local machine required):**
+- Frontend: [https://habify-hkox.vercel.app](https://habify-hkox.vercel.app/)
+- Backend: [https://habify-1-vsl4.onrender.com](https://habify-1-vsl4.onrender.com)
+- See [DEPLOY.md](./DEPLOY.md) for env vars and CORS on Render/Vercel.
+
 ---
 
 ## 🧪 Running Automated Tests
