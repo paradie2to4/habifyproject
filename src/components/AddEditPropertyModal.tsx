@@ -162,22 +162,22 @@ export const AddEditPropertyModal: React.FC = () => {
   const availableDistricts = RWANDA_DISTRICTS_BY_PROVINCE[province as keyof typeof RWANDA_DISTRICTS_BY_PROVINCE] || [];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-navy-950/70 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/55 backdrop-blur-[3px] overflow-y-auto">
       <div
-        className="bg-cream-50 rounded-xl max-w-3xl w-full shadow-xl border border-cream-200 overflow-hidden my-6 text-left"
+        className="animate-pop bg-stone-50 rounded-3xl max-w-3xl w-full border border-stone-200 overflow-hidden my-6 text-left"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-5 sm:p-6 bg-navy-900 text-white flex items-center justify-between border-b border-navy-800">
+        <div className="palette-light topo p-5 sm:p-6 bg-tea-700 text-white flex items-center justify-between border-b border-tea-600">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-lg bg-terra-600/25 border border-terra-500/40 flex items-center justify-center text-terra-300">
+            <div className="w-10 h-10 rounded-lg bg-tea-700/25 border border-tea-500/40 flex items-center justify-center text-saffron-300">
               <Building className="w-5 h-5" />
             </div>
             <div>
               <h2 className="font-display text-lg font-semibold">
                 {isEditing ? 'Edit property listing' : 'Publish a new listing'}
               </h2>
-              <p className="text-xs text-cream-400 mt-0.5">
+              <p className="text-xs text-stone-400 mt-0.5">
                 Live quality score · Rwanda locations
               </p>
             </div>
@@ -185,7 +185,7 @@ export const AddEditPropertyModal: React.FC = () => {
           <button
             type="button"
             onClick={closeModal}
-            className="p-2 text-cream-400 hover:text-white rounded-lg hover:bg-navy-800 transition-colors"
+            className="p-2 text-stone-400 hover:text-white rounded-lg hover:bg-tea-600 transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -193,21 +193,21 @@ export const AddEditPropertyModal: React.FC = () => {
         </div>
 
         {/* Live Listing Quality Score Banner */}
-        <div className="bg-navy-950 text-white p-4 border-b border-navy-800">
+        <div className="palette-light bg-ink-950 text-white p-4 border-b border-tea-600">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg bg-navy-900 border border-navy-700 flex flex-col items-center justify-center">
-                <span className="text-base font-bold text-terra-300">{quality.score}%</span>
-                <span className="text-[9px] uppercase font-semibold text-cream-500">Quality</span>
+              <div className="w-12 h-12 rounded-lg bg-tea-700 border border-ink-700 flex flex-col items-center justify-center">
+                <span className="text-base font-bold text-saffron-300">{quality.score}%</span>
+                <span className="text-[9px] uppercase font-semibold text-stone-500">Quality</span>
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-semibold">Listing quality</span>
-                  <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-md bg-terra-600/20 text-terra-300 border border-terra-500/40">
+                  <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-md bg-tea-700/20 text-saffron-300 border border-tea-500/40">
                     {quality.tier.replace(/_/g, ' ')}
                   </span>
                 </div>
-                <p className="text-xs text-cream-400 mt-0.5">
+                <p className="text-xs text-stone-400 mt-0.5">
                   {quality.recommendations.length > 0
                     ? `Tip: ${quality.recommendations[0]}`
                     : 'Listing looks strong — ready to attract inquiries.'}
@@ -215,13 +215,13 @@ export const AddEditPropertyModal: React.FC = () => {
               </div>
             </div>
 
-            <div className="hidden sm:block text-right text-xs text-cream-500">
+            <div className="hidden sm:block text-right text-xs text-stone-500">
               <span>Completed: {quality.completedItems.length} items</span>
             </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5 max-h-[62vh] overflow-y-auto text-navy-900">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5 max-h-[62vh] overflow-y-auto text-ink-900">
           <div>
             <label className="text-label block mb-1.5">Property title *</label>
             <input
@@ -234,9 +234,9 @@ export const AddEditPropertyModal: React.FC = () => {
             />
           </div>
 
-          <div className="p-4 bg-white rounded-xl border border-cream-200 space-y-3">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-navy-900">
-              <Globe2 className="w-4 h-4 text-terra-600" />
+          <div className="p-4 bg-white rounded-xl border border-stone-200 space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-900">
+              <Globe2 className="w-4 h-4 text-tea-600" />
               <span>Location in Rwanda</span>
             </div>
 
@@ -371,23 +371,23 @@ export const AddEditPropertyModal: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6 p-3.5 rounded-xl bg-white border border-cream-200">
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-navy-900">
+          <div className="flex flex-wrap items-center gap-6 p-3.5 rounded-xl bg-white border border-stone-200">
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-ink-900">
               <input
                 type="checkbox"
                 checked={isFurnished}
                 onChange={e => setIsFurnished(e.target.checked)}
-                className="w-4 h-4 rounded text-terra-600 focus:ring-terra-500 border-cream-300"
+                className="w-4 h-4 rounded text-tea-600 focus:ring-tea-500 border-stone-300"
               />
               <span>Furnished</span>
             </label>
 
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-navy-900">
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-ink-900">
               <input
                 type="checkbox"
                 checked={hasParking}
                 onChange={e => setHasParking(e.target.checked)}
-                className="w-4 h-4 rounded text-terra-600 focus:ring-terra-500 border-cream-300"
+                className="w-4 h-4 rounded text-tea-600 focus:ring-tea-500 border-stone-300"
               />
               <span>Dedicated parking</span>
             </label>
@@ -396,7 +396,7 @@ export const AddEditPropertyModal: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-label">Description & highlights</label>
-              <span className="text-[11px] text-cream-500 font-mono">
+              <span className="text-[11px] text-stone-500 font-mono">
                 {description.length} chars (150+ recommended)
               </span>
             </div>
@@ -423,8 +423,8 @@ export const AddEditPropertyModal: React.FC = () => {
                     onClick={() => handleToggleAmenity(a)}
                     className={`p-2 rounded-lg text-xs font-medium text-left transition-all border ${
                       active
-                        ? 'bg-terra-50 border-terra-400 text-terra-900 font-semibold'
-                        : 'bg-white border-cream-200 text-cream-700 hover:bg-cream-100'
+                        ? 'bg-saffron-50 border-tea-400 text-saffron-900 font-semibold'
+                        : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'
                     }`}
                   >
                     {a}
@@ -458,12 +458,12 @@ export const AddEditPropertyModal: React.FC = () => {
 
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {images.map((img, idx) => (
-                <div key={idx} className="relative aspect-video rounded-lg overflow-hidden group bg-cream-100 border border-cream-200">
+                <div key={idx} className="relative aspect-video rounded-lg overflow-hidden group bg-stone-100 border border-stone-200">
                   <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => handleRemoveImage(idx)}
-                    className="absolute top-1 right-1 p-1 rounded-md bg-terra-600 text-white opacity-90 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1 right-1 p-1 rounded-md bg-tea-700 text-white opacity-90 group-hover:opacity-100 transition-opacity"
                     aria-label="Remove photo"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -473,7 +473,7 @@ export const AddEditPropertyModal: React.FC = () => {
             </div>
           </div>
 
-          <div className="pt-3 border-t border-cream-200 flex items-center justify-between gap-3">
+          <div className="pt-3 border-t border-stone-200 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={closeModal}

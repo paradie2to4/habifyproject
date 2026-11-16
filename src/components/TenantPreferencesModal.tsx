@@ -80,21 +80,21 @@ export const TenantPreferencesModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-navy-950/70 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/55 backdrop-blur-[3px] overflow-y-auto">
       <div
-        className="bg-cream-50 rounded-xl max-w-2xl w-full shadow-xl border border-cream-200 overflow-hidden my-6 text-left"
+        className="animate-pop bg-stone-50 rounded-3xl max-w-2xl w-full border border-stone-200 overflow-hidden my-6 text-left"
         onClick={e => e.stopPropagation()}
       >
-        <div className="p-5 sm:p-6 bg-navy-900 text-white flex items-center justify-between border-b border-navy-800">
+        <div className="palette-light topo p-5 sm:p-6 bg-tea-700 text-white flex items-center justify-between border-b border-tea-600">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-lg bg-terra-600/25 border border-terra-500/40 flex items-center justify-center text-terra-300">
+            <div className="w-10 h-10 rounded-lg bg-tea-700/25 border border-tea-500/40 flex items-center justify-center text-saffron-300">
               <SlidersHorizontal className="w-5 h-5" />
             </div>
             <div>
               <h2 className="font-display text-lg font-semibold">
                 {currentUser?.role === 'TENANT' ? 'Profile & preferences' : 'Your preferences'}
               </h2>
-              <p className="text-xs text-cream-400 mt-0.5">
+              <p className="text-xs text-stone-400 mt-0.5">
                 Match homes to how you actually live
               </p>
             </div>
@@ -102,16 +102,16 @@ export const TenantPreferencesModal: React.FC = () => {
           <button
             type="button"
             onClick={closeModal}
-            className="p-2 text-cream-400 hover:text-white rounded-lg hover:bg-navy-800 transition-colors"
+            className="p-2 text-stone-400 hover:text-white rounded-lg hover:bg-tea-600 transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-5 sm:p-6 space-y-6 max-h-[70vh] overflow-y-auto text-navy-900">
+        <div className="p-5 sm:p-6 space-y-6 max-h-[70vh] overflow-y-auto text-ink-900">
           {currentUser && (
-            <div className="p-4 bg-white rounded-xl border border-cream-200 space-y-3">
+            <div className="p-4 bg-white rounded-xl border border-stone-200 space-y-3">
               <p className="text-label">Account profile</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -135,8 +135,8 @@ export const TenantPreferencesModal: React.FC = () => {
                   />
                 </div>
               </div>
-              <p className="text-xs text-cream-600">
-                Signed in as <span className="font-semibold text-navy-900">{currentUser.email}</span>
+              <p className="text-xs text-stone-600">
+                Signed in as <span className="font-semibold text-ink-900">{currentUser.email}</span>
               </p>
             </div>
           )}
@@ -147,7 +147,7 @@ export const TenantPreferencesModal: React.FC = () => {
             <div className="space-y-1.5">
               <label className="text-label flex items-center justify-between">
                 <span>Maximum budget</span>
-                <span className="font-mono text-terra-600 text-sm font-bold normal-case tracking-normal">
+                <span className="font-mono text-tea-600 text-sm font-bold normal-case tracking-normal">
                   {maxBudget.toLocaleString()} RWF
                 </span>
               </label>
@@ -158,9 +158,9 @@ export const TenantPreferencesModal: React.FC = () => {
                 step={25000}
                 value={maxBudget}
                 onChange={e => setMaxBudget(Number(e.target.value))}
-                className="w-full h-2 bg-cream-200 rounded-lg appearance-none cursor-pointer accent-terra-600"
+                className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-tea-600"
               />
-              <div className="flex justify-between text-[10px] text-cream-600 font-mono">
+              <div className="flex justify-between text-[10px] text-stone-600 font-mono">
                 <span>100k</span>
                 <span>1M</span>
                 <span>2M</span>
@@ -170,7 +170,7 @@ export const TenantPreferencesModal: React.FC = () => {
             <div className="space-y-1.5">
               <label className="text-label flex items-center justify-between">
                 <span>Monthly income</span>
-                <span className="font-mono text-navy-700 text-sm font-bold normal-case tracking-normal">
+                <span className="font-mono text-ink-700 text-sm font-bold normal-case tracking-normal">
                   {monthlyIncome.toLocaleString()} RWF
                 </span>
               </label>
@@ -181,9 +181,9 @@ export const TenantPreferencesModal: React.FC = () => {
                 step={50000}
                 value={monthlyIncome}
                 onChange={e => setMonthlyIncome(Number(e.target.value))}
-                className="w-full h-2 bg-cream-200 rounded-lg appearance-none cursor-pointer accent-navy-800"
+                className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-tea-600"
               />
-              <div className="flex justify-between text-[10px] text-cream-600 font-mono">
+              <div className="flex justify-between text-[10px] text-stone-600 font-mono">
                 <span>200k</span>
                 <span>2M</span>
                 <span>4M</span>
@@ -200,7 +200,7 @@ export const TenantPreferencesModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedLocations([])}
-                  className="text-[11px] text-terra-600 hover:underline font-semibold"
+                  className="text-[11px] text-tea-600 hover:underline font-semibold"
                 >
                   Clear all
                 </button>
@@ -215,8 +215,8 @@ export const TenantPreferencesModal: React.FC = () => {
                   onClick={() => setActiveProvinceTab(prov)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 ${
                     activeProvinceTab === prov
-                      ? 'bg-navy-900 text-white'
-                      : 'bg-cream-100 text-navy-700 hover:bg-cream-200'
+                      ? 'bg-tea-700 text-white'
+                      : 'bg-stone-100 text-ink-700 hover:bg-stone-200'
                   }`}
                 >
                   {prov}
@@ -224,7 +224,7 @@ export const TenantPreferencesModal: React.FC = () => {
               ))}
             </div>
 
-            <div className="flex flex-wrap gap-2 p-3 bg-white rounded-xl border border-cream-200">
+            <div className="flex flex-wrap gap-2 p-3 bg-white rounded-xl border border-stone-200">
               {Object.entries(RWANDA_LOCATIONS_DATA)
                 .filter(([_, info]) => info.province === activeProvinceTab)
                 .map(([locName, info]) => {
@@ -236,11 +236,11 @@ export const TenantPreferencesModal: React.FC = () => {
                       onClick={() => toggleLocation(locName)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
                         active
-                          ? 'bg-terra-600 text-white'
-                          : 'bg-cream-50 hover:bg-cream-100 border border-cream-200 text-navy-700'
+                          ? 'bg-tea-700 text-white'
+                          : 'bg-stone-50 hover:bg-stone-100 border border-stone-200 text-ink-700'
                       }`}
                     >
-                      <MapPin className={`w-3 h-3 ${active ? 'text-white' : 'text-cream-500'}`} />
+                      <MapPin className={`w-3 h-3 ${active ? 'text-white' : 'text-stone-500'}`} />
                       <span>{locName}</span>
                       <span className="text-[10px] opacity-75 font-normal">({info.district})</span>
                       {active && <Check className="w-3 h-3" />}
@@ -263,8 +263,8 @@ export const TenantPreferencesModal: React.FC = () => {
                     onClick={() => setMinBedrooms(num)}
                     className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
                       minBedrooms === num
-                        ? 'bg-navy-900 text-white'
-                        : 'bg-cream-100 hover:bg-cream-200 text-navy-700'
+                        ? 'bg-tea-700 text-white'
+                        : 'bg-stone-100 hover:bg-stone-200 text-ink-700'
                     }`}
                   >
                     {num}{num === 5 ? '+' : ''}
@@ -285,8 +285,8 @@ export const TenantPreferencesModal: React.FC = () => {
                       onClick={() => toggleType(type)}
                       className={`px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${
                         active
-                          ? 'bg-terra-600 text-white'
-                          : 'bg-cream-100 hover:bg-cream-200 text-navy-600'
+                          ? 'bg-tea-700 text-white'
+                          : 'bg-stone-100 hover:bg-stone-200 text-ink-600'
                       }`}
                     >
                       {type}
@@ -297,17 +297,17 @@ export const TenantPreferencesModal: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl bg-white border border-cream-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl bg-white border border-stone-200">
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={furnishedRequired}
                 onChange={e => setFurnishedRequired(e.target.checked)}
-                className="w-4 h-4 rounded text-terra-600 focus:ring-terra-500 border-cream-300"
+                className="w-4 h-4 rounded text-tea-600 focus:ring-tea-500 border-stone-300"
               />
               <div>
-                <span className="text-xs font-bold text-navy-900 block">Furnished</span>
-                <span className="text-[11px] text-cream-600">Ready-to-move homes</span>
+                <span className="text-xs font-bold text-ink-900 block">Furnished</span>
+                <span className="text-[11px] text-stone-600">Ready-to-move homes</span>
               </div>
             </label>
 
@@ -316,11 +316,11 @@ export const TenantPreferencesModal: React.FC = () => {
                 type="checkbox"
                 checked={parkingRequired}
                 onChange={e => setParkingRequired(e.target.checked)}
-                className="w-4 h-4 rounded text-terra-600 focus:ring-terra-500 border-cream-300"
+                className="w-4 h-4 rounded text-tea-600 focus:ring-tea-500 border-stone-300"
               />
               <div>
-                <span className="text-xs font-bold text-navy-900 block">Parking required</span>
-                <span className="text-[11px] text-cream-600">Garage or compound space</span>
+                <span className="text-xs font-bold text-ink-900 block">Parking required</span>
+                <span className="text-[11px] text-stone-600">Garage or compound space</span>
               </div>
             </label>
           </div>
@@ -339,12 +339,12 @@ export const TenantPreferencesModal: React.FC = () => {
                     onClick={() => toggleAmenity(amenity)}
                     className={`p-2 rounded-lg text-xs font-medium text-left transition-all flex items-center justify-between border ${
                       active
-                        ? 'bg-terra-50 border-terra-400 text-terra-900 font-semibold'
-                        : 'bg-white border-cream-200 text-navy-600 hover:bg-cream-100'
+                        ? 'bg-saffron-50 border-tea-400 text-saffron-900 font-semibold'
+                        : 'bg-white border-stone-200 text-ink-600 hover:bg-stone-100'
                     }`}
                   >
                     <span className="truncate mr-1">{amenity}</span>
-                    {active && <Check className="w-3.5 h-3.5 text-terra-600 flex-shrink-0" />}
+                    {active && <Check className="w-3.5 h-3.5 text-tea-600 flex-shrink-0" />}
                   </button>
                 );
               })}
@@ -354,7 +354,7 @@ export const TenantPreferencesModal: React.FC = () => {
           )}
         </div>
 
-        <div className="p-4 sm:p-5 bg-white border-t border-cream-200 flex items-center justify-between">
+        <div className="p-4 sm:p-5 bg-white border-t border-stone-200 flex items-center justify-between">
           <button
             type="button"
             onClick={closeModal}

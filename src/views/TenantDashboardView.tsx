@@ -2,6 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import { PropertyCard } from '../components/PropertyCard';
 import { EmptyState } from '../components/EmptyState';
+import { DashboardHero, heroGhostBtn, heroPrimaryBtn, todayLabel } from '../components/DashboardHero';
 import {
   Heart,
   Calendar,
@@ -10,7 +11,8 @@ import {
   Calculator,
   Clock,
   ArrowRight,
-  Check
+  Check,
+  Sparkles
 } from 'lucide-react';
 
 const greetingForHour = (hour: number) => {
@@ -61,48 +63,72 @@ export const TenantDashboardView: React.FC = () => {
 
   return (
     <div id="tenant-dashboard-container" className="space-y-10 text-left">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <p className="text-sm text-cream-600">{greeting},</p>
-          <h1 className="font-display text-3xl sm:text-4xl font-semibold text-navy-900 mt-1">
-            {firstName}
-          </h1>
-          <p className="mt-2 text-sm sm:text-base text-cream-700 max-w-xl leading-relaxed">
-            Here are homes that fit what you&apos;re looking for.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => openModal('PREFERENCES')}
-            className="btn-secondary flex items-center gap-1.5 text-xs"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            Preferences
-          </button>
-          <button
-            type="button"
-            onClick={() => openModal('AFFORDABILITY_CALCULATOR')}
-            className="btn-ghost flex items-center gap-1.5 text-xs"
-          >
-            <Calculator className="w-4 h-4" />
-            Budget
-          </button>
-        </div>
-      </header>
+      <DashboardHero
+        eyebrow={todayLabel()}
+        title={<>{greeting}, {firstName}</>}
+        subtitle={`Homes ranked for ${locationSummary}, up to ${preferences.maxBudget.toLocaleString()} RWF a month.`}
+        actions={
+          <>
+            <button type="button" onClick={() => setCurrentTab('RECOMMENDATIONS')} className={heroPrimaryBtn}>
+              See your matches
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button type="button" onClick={() => openModal('PREFERENCES')} className={heroGhostBtn}>
+              <SlidersHorizontal className="w-4 h-4" />
+              Preferences
+            </button>
+            <button type="button" onClick={() => openModal('AFFORDABILITY_CALCULATOR')} className={heroGhostBtn}>
+              <Calculator className="w-4 h-4" />
+              Budget
+            </button>
+          </>
+        }
+        stats={[
+          {
+            label: 'Top match',
+            value: recommended[0] ? `${recommended[0].match.totalScore}%` : '—',
+            hint: recommended[0]?.property.locationSector ?? 'Set your preferences',
+            icon: Sparkles,
+            onClick: () => setCurrentTab('RECOMMENDATIONS')
+          },
+          {
+            label: 'Saved homes',
+            value: savedProperties.length,
+            hint: savedProperties.length ? 'Ready to compare' : 'Tap the heart on any home',
+            icon: Heart,
+            onClick: () => setCurrentTab('FAVORITES')
+          },
+          {
+            label: 'Upcoming viewings',
+            value: upcomingViewings.length,
+            hint: upcomingViewings.length ? 'Check times in Messages' : 'Nothing booked yet',
+            icon: Calendar,
+            attention: upcomingViewings.length > 0,
+            onClick: () => setCurrentTab('INQUIRIES')
+          },
+          {
+            label: 'Conversations',
+            value: myInquiries.length,
+            hint: myInquiries.some(i => i.reply) ? 'You have replies' : 'Ask landlords anything',
+            icon: MessageSquare,
+            attention: myInquiries.some(i => i.reply),
+            onClick: () => setCurrentTab('INQUIRIES')
+          }
+        ]}
+      />
 
       <section>
         <div className="flex items-end justify-between gap-4 mb-5">
           <div>
             <h2 className="text-section">Recommended for you</h2>
-            <p className="text-sm text-cream-600 mt-1">
+            <p className="text-sm text-stone-600 mt-1">
               Ranked for {locationSummary} · up to {preferences.maxBudget.toLocaleString()} RWF
             </p>
           </div>
           <button
             type="button"
             onClick={() => setCurrentTab('RECOMMENDATIONS')}
-            className="text-sm font-medium text-navy-900 hover:text-terra-700 flex items-center gap-1"
+            className="text-sm font-medium text-ink-900 hover:text-tea-700 flex items-center gap-1"
           >
             See all <ArrowRight className="w-4 h-4" />
           </button>
@@ -130,7 +156,7 @@ export const TenantDashboardView: React.FC = () => {
             <button
               type="button"
               onClick={() => setCurrentTab('FAVORITES')}
-              className="text-sm font-medium text-navy-900 hover:text-terra-700 flex items-center gap-1"
+              className="text-sm font-medium text-ink-900 hover:text-tea-700 flex items-center gap-1"
             >
               View saved <ArrowRight className="w-4 h-4" />
             </button>
@@ -160,13 +186,13 @@ export const TenantDashboardView: React.FC = () => {
             <button
               type="button"
               onClick={() => setCurrentTab('BROWSE')}
-              className="text-sm font-medium text-navy-900 hover:text-terra-700"
+              className="text-sm font-medium text-ink-900 hover:text-tea-700"
             >
               Book another
             </button>
           </div>
           {upcomingViewings.length > 0 ? (
-            <ul className="divide-y divide-cream-200 border-t border-cream-200">
+            <ul className="divide-y divide-stone-200 border-t border-stone-200">
               {upcomingViewings.map(v => (
                 <li key={v.id} className="py-4 flex items-center gap-3">
                   <img
@@ -175,15 +201,15 @@ export const TenantDashboardView: React.FC = () => {
                     className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-navy-900 truncate">{v.propertyTitle}</p>
-                    <p className="text-xs text-cream-600 mt-0.5 flex items-center gap-1.5">
+                    <p className="text-sm font-semibold text-ink-900 truncate">{v.propertyTitle}</p>
+                    <p className="text-xs text-stone-600 mt-0.5 flex items-center gap-1.5">
                       <Calendar className="w-3 h-3" />
                       {v.requestedDate}
                       <Clock className="w-3 h-3 ml-1" />
                       {v.requestedTimeSlot}
                     </p>
                   </div>
-                  <span className="text-xs text-cream-700 capitalize">{v.status.toLowerCase()}</span>
+                  <span className="text-xs text-stone-700 capitalize">{v.status.toLowerCase()}</span>
                 </li>
               ))}
             </ul>
@@ -205,24 +231,24 @@ export const TenantDashboardView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCurrentTab('INQUIRIES')}
-                className="text-sm font-medium text-navy-900 hover:text-terra-700"
+                className="text-sm font-medium text-ink-900 hover:text-tea-700"
               >
                 View all
               </button>
             )}
           </div>
           {myInquiries.length > 0 ? (
-            <ul className="divide-y divide-cream-200 border-t border-cream-200">
+            <ul className="divide-y divide-stone-200 border-t border-stone-200">
               {myInquiries.slice(0, 4).map(inq => (
                 <li key={inq.id} className="py-4">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-semibold text-navy-900 truncate">{inq.subject}</p>
-                    <span className="text-xs text-cream-500 flex-shrink-0">
+                    <p className="text-sm font-semibold text-ink-900 truncate">{inq.subject}</p>
+                    <span className="text-xs text-stone-500 flex-shrink-0">
                       {new Date(inq.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="text-xs text-cream-700 mt-1 line-clamp-2">{inq.message}</p>
-                  <p className="text-xs text-cream-500 mt-1.5">To {inq.landlordName}</p>
+                  <p className="text-xs text-stone-700 mt-1 line-clamp-2">{inq.message}</p>
+                  <p className="text-xs text-stone-500 mt-1.5">To {inq.landlordName}</p>
                 </li>
               ))}
             </ul>
@@ -238,9 +264,9 @@ export const TenantDashboardView: React.FC = () => {
         </section>
       </div>
 
-      <section className="border-t border-cream-200 pt-8">
+      <section className="border-t border-stone-200 pt-8">
         <h2 className="text-section mb-3">What you&apos;re looking for</h2>
-        <p className="text-sm text-cream-700 leading-relaxed max-w-2xl">
+        <p className="text-sm text-stone-700 leading-relaxed max-w-2xl">
           {preferences.minBedrooms}+ bedrooms in {locationSummary}. Budget up to{' '}
           {preferences.maxBudget.toLocaleString()} RWF a month
           {preferences.parkingRequired ? ', with parking' : ''}
@@ -249,26 +275,26 @@ export const TenantDashboardView: React.FC = () => {
             <> Amenities: {preferences.preferredAmenities.slice(0, 4).join(', ')}.</>
           )}
         </p>
-        <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-navy-800">
+        <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-800">
           {preferences.parkingRequired && (
             <li className="flex items-center gap-1.5">
-              <Check className="w-3.5 h-3.5 text-sage-700" /> Parking
+              <Check className="w-3.5 h-3.5 text-tea-700" /> Parking
             </li>
           )}
           {preferences.furnishedRequired && (
             <li className="flex items-center gap-1.5">
-              <Check className="w-3.5 h-3.5 text-sage-700" /> Furnished
+              <Check className="w-3.5 h-3.5 text-tea-700" /> Furnished
             </li>
           )}
           <li className="flex items-center gap-1.5">
-            <Check className="w-3.5 h-3.5 text-sage-700" />
+            <Check className="w-3.5 h-3.5 text-tea-700" />
             {((preferences.maxBudget / Math.max(preferences.monthlyIncome, 1)) * 100).toFixed(0)}% of income
           </li>
         </ul>
         <button
           type="button"
           onClick={() => openModal('PREFERENCES')}
-          className="mt-4 text-sm font-medium text-navy-900 hover:text-terra-700"
+          className="mt-4 text-sm font-medium text-ink-900 hover:text-tea-700"
         >
           Edit preferences
         </button>

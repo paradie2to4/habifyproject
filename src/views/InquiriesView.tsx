@@ -34,16 +34,16 @@ export const InquiriesView: React.FC = () => {
   return (
     <div id="inquiries-view-container" className="space-y-8 text-left">
       <header>
-        <h1 className="font-display text-3xl font-semibold text-navy-900">Messages</h1>
-        <p className="text-sm text-cream-600 mt-2">
+        <h1 className="font-display text-3xl font-semibold text-ink-900">Messages</h1>
+        <p className="text-sm text-stone-600 mt-2">
           Conversations with landlords about homes you&apos;re considering.
         </p>
       </header>
 
       {inquiries.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 bg-white rounded-xl border border-cream-200 overflow-hidden min-h-[520px]">
-          <div className="lg:col-span-1 border-b lg:border-b-0 lg:border-r border-cream-200 divide-y divide-cream-100 overflow-y-auto max-h-[600px]">
-            <div className="p-4 text-xs font-semibold uppercase tracking-wide text-cream-600">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 bg-white rounded-xl border border-stone-200 overflow-hidden min-h-[520px]">
+          <div className="lg:col-span-1 border-b lg:border-b-0 lg:border-r border-stone-200 divide-y divide-stone-100 overflow-y-auto max-h-[600px]">
+            <div className="p-4 text-xs font-semibold uppercase tracking-wide text-stone-600">
               Threads ({inquiries.length})
             </div>
             {inquiries.map(inq => {
@@ -54,7 +54,7 @@ export const InquiriesView: React.FC = () => {
                   type="button"
                   onClick={() => setSelectedInquiryId(inq.id)}
                   className={`w-full p-4 text-left flex items-start gap-3 transition-colors ${
-                    active ? 'bg-cream-100' : 'hover:bg-cream-50'
+                    active ? 'bg-stone-100' : 'hover:bg-stone-50'
                   }`}
                 >
                   <img
@@ -64,13 +64,13 @@ export const InquiriesView: React.FC = () => {
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 text-xs mb-0.5">
-                      <span className="font-semibold text-navy-900 truncate">{inq.tenantName}</span>
-                      <span className="text-cream-500 flex-shrink-0">
+                      <span className="font-semibold text-ink-900 truncate">{inq.tenantName}</span>
+                      <span className="text-stone-500 flex-shrink-0">
                         {new Date(inq.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
-                    <p className="text-xs font-medium text-navy-800 truncate">{inq.subject}</p>
-                    <p className="text-[11px] text-cream-600 truncate mt-0.5">{inq.message}</p>
+                    <p className="text-xs font-medium text-ink-800 truncate">{inq.subject}</p>
+                    <p className="text-[11px] text-stone-600 truncate mt-0.5">{inq.message}</p>
                   </div>
                 </button>
               );
@@ -81,27 +81,27 @@ export const InquiriesView: React.FC = () => {
             <div className="lg:col-span-2 p-6 flex flex-col justify-between gap-6">
               <div className="space-y-4">
                 <div>
-                  <h2 className="text-base font-semibold text-navy-900">{selectedInquiry.subject}</h2>
-                  <p className="text-sm text-cream-600 mt-1">
+                  <h2 className="text-base font-semibold text-ink-900">{selectedInquiry.subject}</h2>
+                  <p className="text-sm text-stone-600 mt-1">
                     {selectedInquiry.propertyTitle} · {selectedInquiry.propertyLocation}
                   </p>
-                  <p className="text-xs text-cream-500 mt-2">
+                  <p className="text-xs text-stone-500 mt-2">
                     {selectedInquiry.tenantName} → {selectedInquiry.landlordName}
                   </p>
                 </div>
 
-                <div className="p-4 rounded-lg bg-cream-50 border border-cream-200">
-                  <div className="flex items-center justify-between text-xs text-cream-600 mb-2">
-                    <span className="font-semibold text-navy-900">{selectedInquiry.tenantName}</span>
+                <div className="p-4 rounded-lg bg-stone-50 border border-stone-200">
+                  <div className="flex items-center justify-between text-xs text-stone-600 mb-2">
+                    <span className="font-semibold text-ink-900">{selectedInquiry.tenantName}</span>
                     <span>{new Date(selectedInquiry.createdAt).toLocaleString()}</span>
                   </div>
-                  <p className="text-sm text-navy-800 leading-relaxed whitespace-pre-line">
+                  <p className="text-sm text-ink-800 leading-relaxed whitespace-pre-line">
                     {selectedInquiry.message}
                   </p>
                 </div>
               </div>
 
-              <form onSubmit={handleSendReply} className="flex items-end gap-2 pt-4 border-t border-cream-200">
+              <form onSubmit={handleSendReply} className="flex items-end gap-2 pt-4 border-t border-stone-200">
                 <label htmlFor="inquiry-reply" className="sr-only">Reply</label>
                 <textarea
                   id="inquiry-reply"
@@ -122,7 +122,7 @@ export const InquiriesView: React.FC = () => {
               </form>
             </div>
           ) : (
-            <div className="lg:col-span-2 flex items-center justify-center text-cream-500 text-sm p-8">
+            <div className="lg:col-span-2 flex items-center justify-center text-stone-500 text-sm p-8">
               Select a conversation to read it.
             </div>
           )}

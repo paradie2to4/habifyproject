@@ -393,7 +393,7 @@ export const RwandaAdminMap: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-extrabold tracking-tight text-white">
+                <h2 className="text-lg font-bold tracking-tight text-white">
                   Rwanda National Spatial Map & GIS Registry
                 </h2>
                 <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40">
@@ -546,7 +546,7 @@ export const RwandaAdminMap: React.FC = () => {
           <div className="w-full md:w-80 lg:w-96 bg-white border-t md:border-t-0 md:border-l border-slate-200 p-5 shadow-xl z-20 flex flex-col justify-between overflow-y-auto max-h-[480px] lg:max-h-[560px] text-left">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
                   {selectedProperty.propertyType} • {selectedProperty.locationSector}
                 </span>
                 <button
@@ -563,7 +563,7 @@ export const RwandaAdminMap: React.FC = () => {
                   alt={selectedProperty.title}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-slate-900/80 text-white text-[11px] font-black backdrop-blur">
+                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-slate-900/80 text-white text-[11px] font-bold backdrop-blur">
                   RWF {selectedProperty.monthlyRent.toLocaleString()} / mo
                 </div>
                 {reportedPropertyIds.has(selectedProperty.id) && (
@@ -682,14 +682,14 @@ export const RwandaAdminMap: React.FC = () => {
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">
+                  <span className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
                     {province}
                   </span>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
                     {RWANDA_DISTRICTS_BY_PROVINCE[province].length} Districts
                   </span>
                 </div>
-                <div className="text-base font-extrabold text-slate-900 mt-1.5">
+                <div className="text-base font-bold text-slate-900 mt-1.5">
                   {count} <span className="text-xs font-normal text-slate-500">active listings</span>
                 </div>
                 <div className="text-xs text-blue-600 font-semibold font-mono mt-0.5">

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Property, ViewingRequest, Inquiry, LeaseAgreement, RentPayment, MaintenanceTicket } from '../types';
 import { PropertyImage } from '../components/PropertyImage';
+import { DashboardHero, greetingFor, heroGhostBtn, heroPrimaryBtn, todayLabel } from '../components/DashboardHero';
 import {
   Building,
   Building2,
@@ -298,15 +299,13 @@ export const LandlordDashboardView: React.FC = () => {
   const grossRentalYield = calcPropValue > 0 ? ((grossAnnualRent / calcPropValue) * 100).toFixed(2) : '0';
   const netRentalYield = calcPropValue > 0 ? ((netAnnualRent / calcPropValue) * 100).toFixed(2) : '0';
   const paybackYears = netAnnualRent > 0 ? (calcPropValue / netAnnualRent).toFixed(1) : 'N/A';
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const firstName = (currentUser?.fullName || 'there').split(' ')[0];
 
   if (!currentUser || currentUser.role !== 'LANDLORD') {
     return (
-      <div className="bg-white rounded-xl border border-cream-200 px-6 py-14 text-center">
-        <h3 className="font-display text-xl font-semibold text-navy-900">Owner dashboard</h3>
-        <p className="mx-auto mt-2 max-w-sm text-sm text-cream-600">
+      <div className="bg-white rounded-xl border border-stone-200 px-6 py-14 text-center">
+        <h3 className="font-display text-xl font-semibold text-ink-900">Owner dashboard</h3>
+        <p className="mx-auto mt-2 max-w-sm text-sm text-stone-600">
           Sign in as a landlord or landlady to manage your listings, rent, and viewing requests.
         </p>
         <button type="button" onClick={() => setCurrentTab('LOGIN')} className="btn-primary mt-6">
@@ -319,77 +318,76 @@ export const LandlordDashboardView: React.FC = () => {
   return (
     <div id="landlord-hub-container" className="space-y-8 text-left pb-16">
       
-      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-        <div>
-          <p className="text-sm text-cream-600">{greeting},</p>
-          <h1 className="font-display text-3xl sm:text-4xl font-semibold text-navy-900 mt-1">
-            {firstName}
-          </h1>
-          <p className="mt-2 text-sm text-cream-700 max-w-xl">
-            Your landlord / landlady workspace — listings, rent, viewings, and leases.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            id="landlord-publish-new-btn"
-            type="button"
-            onClick={() => openModal('ADD_EDIT_PROPERTY')}
-            className="btn-primary flex items-center gap-2 text-xs"
-          >
-            <Plus className="w-4 h-4" />
-            List a property
-          </button>
-          <button
-            id="landlord-record-payment-btn"
-            type="button"
-            onClick={() => {
-              if (myLeases.length > 0) {
-                setSelectedLeaseForPayment(myLeases[0]);
-                setPaymentAmount(myLeases[0].monthlyRent);
-              }
-              setShowPaymentModal(true);
-            }}
-            className="btn-secondary flex items-center gap-1.5 text-xs"
-          >
-            <DollarSign className="w-4 h-4" />
-            Record rent
-          </button>
-          <button
-            type="button"
-            onClick={handleExportPortfolioCSV}
-            className="btn-ghost p-2.5"
-            title="Download portfolio CSV"
-            aria-label="Download portfolio CSV"
-          >
-            <Download className="w-4 h-4" />
-          </button>
-        </div>
-      </header>
+      <DashboardHero
+        eyebrow={todayLabel()}
+        title={<>{greetingFor()}, {firstName}</>}
+        subtitle="Your listings, rent, viewings and leases in one place."
+        actions={
+          <>
+            <button id="landlord-publish-new-btn" type="button" onClick={() => openModal('ADD_EDIT_PROPERTY')} className={heroPrimaryBtn}>
+              <Plus className="w-4 h-4" />
+              List a property
+            </button>
+            <button
+              id="landlord-record-payment-btn"
+              type="button"
+              onClick={() => {
+                if (myLeases.length > 0) {
+                  setSelectedLeaseForPayment(myLeases[0]);
+                  setPaymentAmount(myLeases[0].monthlyRent);
+                }
+                setShowPaymentModal(true);
+              }}
+              className={heroGhostBtn}
+            >
+              <DollarSign className="w-4 h-4" />
+              Record rent
+            </button>
+            <button
+              type="button"
+              onClick={handleExportPortfolioCSV}
+              className={`${heroGhostBtn} w-11 px-0`}
+              title="Download portfolio CSV"
+              aria-label="Download portfolio CSV"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          </>
+        }
+        stats={[
+          {
+            label: 'Active listings',
+            value: availableCount,
+            hint: `${rentedCount} occupied · ${occupancyRate}% occupancy`,
+            icon: Building2,
+            onClick: () => setActiveTab('PROPERTIES')
+          },
+          {
+            label: 'Viewing requests',
+            value: myViewings.length,
+            hint: pendingViewingsCount > 0 ? `${pendingViewingsCount} waiting for you` : 'All caught up',
+            icon: Calendar,
+            attention: pendingViewingsCount > 0,
+            onClick: () => setActiveTab('VIEWINGS')
+          },
+          {
+            label: 'Inquiries',
+            value: myInquiries.length,
+            hint: unreadInquiriesCount > 0 ? `${unreadInquiriesCount} unread` : 'No unread messages',
+            icon: MessageSquare,
+            attention: unreadInquiriesCount > 0,
+            onClick: () => setActiveTab('INQUIRIES')
+          },
+          {
+            label: 'Listing quality',
+            value: `${avgQualityScore}%`,
+            hint: `${(totalMonthlyPotential / 1000000).toFixed(1)}M RWF potential / month`,
+            icon: TrendingUp
+          }
+        ]}
+      />
 
-      <dl className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-5 border-y border-cream-200 py-6">
-        <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-cream-600">Active listings</dt>
-          <dd className="mt-1 font-display text-2xl text-navy-900">{availableCount}</dd>
-          <dd className="text-xs text-cream-600 mt-0.5">{rentedCount} occupied · {occupancyRate}% occupancy</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-cream-600">Inquiries</dt>
-          <dd className="mt-1 font-display text-2xl text-navy-900">{myInquiries.length}</dd>
-          <dd className="text-xs text-cream-600 mt-0.5">{unreadInquiriesCount} unread</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-cream-600">Viewing requests</dt>
-          <dd className="mt-1 font-display text-2xl text-navy-900">{myViewings.length}</dd>
-          <dd className="text-xs text-cream-600 mt-0.5">{pendingViewingsCount} pending</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-cream-600">Listing quality</dt>
-          <dd className="mt-1 font-display text-2xl text-navy-900">{avgQualityScore}%</dd>
-          <dd className="text-xs text-cream-600 mt-0.5">{(totalMonthlyPotential / 1000000).toFixed(1)}M RWF potential / mo</dd>
-        </div>
-      </dl>
-
-      <div className="flex items-center gap-1 overflow-x-auto border-b border-cream-200">
+      <div className="flex items-center gap-1 overflow-x-auto border-b border-stone-200">
         {([
           { id: 'PROPERTIES' as const, label: `Properties (${myProperties.length})`, icon: Building2 },
           { id: 'VIEWINGS' as const, label: 'Viewings', icon: Calendar, count: pendingViewingsCount },
@@ -407,13 +405,13 @@ export const LandlordDashboardView: React.FC = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
                 active
-                  ? 'border-navy-900 text-navy-900'
-                  : 'border-transparent text-cream-600 hover:text-navy-900'
+                  ? 'border-tea-700 text-ink-900'
+                  : 'border-transparent text-stone-600 hover:text-ink-900'
               }`}
             >
               <Icon className="w-4 h-4" />
               {tab.label}
-              {tab.count ? <span className="text-xs text-terra-700">{tab.count}</span> : null}
+              {tab.count ? <span className="text-xs text-tea-700">{tab.count}</span> : null}
             </button>
           );
         })}
@@ -425,15 +423,15 @@ export const LandlordDashboardView: React.FC = () => {
       {activeTab === 'PROPERTIES' && (
         <div className="space-y-4">
           {/* Filter Bar */}
-          <div className="bg-white rounded-lg p-4 border border-cream-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="bg-white rounded-lg p-4 border border-stone-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
             <div className="relative w-full md:w-80">
-              <Search className="w-4 h-4 absolute left-3 top-3 text-cream-500" />
+              <Search className="w-4 h-4 absolute left-3 top-3 text-stone-500" />
               <input
                 type="text"
                 placeholder="Search properties by title, sector, district..."
                 value={propSearch}
                 onChange={e => setPropSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-cream-50 border border-cream-200 focus:outline-none focus:ring-2 focus:ring-navy-900"
+                className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-stone-50 border border-stone-200 focus:outline-none focus:ring-2 focus:ring-tea-600"
               />
             </div>
 
@@ -442,8 +440,8 @@ export const LandlordDashboardView: React.FC = () => {
                 onClick={() => setPropStatusFilter('ALL')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   propStatusFilter === 'ALL'
-                    ? 'bg-navy-900 text-white'
-                    : 'bg-cream-100 text-cream-700 hover:bg-cream-200'
+                    ? 'bg-tea-700 text-white'
+                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
                 }`}
               >
                 All ({myProperties.length})
@@ -452,8 +450,8 @@ export const LandlordDashboardView: React.FC = () => {
                 onClick={() => setPropStatusFilter('AVAILABLE')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   propStatusFilter === 'AVAILABLE'
-                    ? 'bg-navy-900 text-white'
-                    : 'bg-cream-100 text-cream-700 hover:bg-cream-200'
+                    ? 'bg-tea-700 text-white'
+                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
                 }`}
               >
                 Available ({availableCount})
@@ -462,8 +460,8 @@ export const LandlordDashboardView: React.FC = () => {
                 onClick={() => setPropStatusFilter('RENTED')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                   propStatusFilter === 'RENTED'
-                    ? 'bg-navy-900 text-white'
-                    : 'bg-cream-100 text-cream-700 hover:bg-cream-200'
+                    ? 'bg-tea-700 text-white'
+                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
                 }`}
               >
                 Rented / Occupied ({rentedCount})
@@ -479,7 +477,7 @@ export const LandlordDashboardView: React.FC = () => {
               return (
                 <div
                   key={prop.id}
-                  className="bg-white p-5 rounded-xl border border-cream-200 shadow-xs hover:border-sage-300 transition-all space-y-4"
+                  className="bg-white p-5 rounded-xl border border-stone-200 shadow-xs hover:border-tea-300 transition-all space-y-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3.5">
@@ -490,27 +488,27 @@ export const LandlordDashboardView: React.FC = () => {
                         className="w-20 h-20 rounded-lg object-cover shadow-xs flex-shrink-0"
                       />
                       <div>
-                        <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-cream-100 text-navy-700">
+                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-stone-100 text-ink-700">
                           {prop.propertyType}
                         </span>
-                        <h3 className="text-sm font-extrabold text-navy-900 mt-1 line-clamp-1">
+                        <h3 className="text-sm font-bold text-ink-900 mt-1 line-clamp-1">
                           {prop.title}
                         </h3>
-                        <p className="text-xs text-cream-600 flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3.5 h-3.5 text-navy-700 flex-shrink-0" />
+                        <p className="text-xs text-stone-600 flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-3.5 h-3.5 text-ink-700 flex-shrink-0" />
                           {prop.locationSector}, {prop.district ? `${prop.district} District` : 'Kigali'}
                         </p>
-                        <p className="text-sm font-black text-navy-900 mt-1 font-mono">
-                          {prop.monthlyRent.toLocaleString()} <span className="text-xs text-cream-500 font-normal">RWF/month</span>
+                        <p className="text-sm font-bold text-ink-900 mt-1 font-mono">
+                          {prop.monthlyRent.toLocaleString()} <span className="text-xs text-stone-500 font-normal">RWF/month</span>
                         </p>
                       </div>
                     </div>
 
                     <span
-                      className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                      className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
                         prop.isAvailable
-                          ? 'bg-sage-100 text-sage-800 border border-sage-300'
-                          : 'bg-navy-100 text-navy-800 border border-navy-200'
+                          ? 'bg-tea-100 text-tea-800 border border-tea-300'
+                          : 'bg-tea-100 text-ink-800 border border-ink-200'
                       }`}
                     >
                       {prop.isAvailable ? 'Available' : 'Occupied'}
@@ -518,35 +516,35 @@ export const LandlordDashboardView: React.FC = () => {
                   </div>
 
                   {/* Listing performance */}
-                  <div className="grid grid-cols-3 gap-3 text-center border border-cream-200 rounded-lg p-3">
+                  <div className="grid grid-cols-3 gap-3 text-center border border-stone-200 rounded-lg p-3">
                     <div>
-                      <div className="text-sm font-semibold text-navy-900">{prop.viewsCount}</div>
-                      <div className="text-[10px] text-cream-600 uppercase tracking-wide">Views</div>
+                      <div className="text-sm font-semibold text-ink-900">{prop.viewsCount}</div>
+                      <div className="text-[10px] text-stone-600 uppercase tracking-wide">Views</div>
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-navy-900">{prop.inquiriesCount}</div>
-                      <div className="text-[10px] text-cream-600 uppercase tracking-wide">Inquiries</div>
+                      <div className="text-sm font-semibold text-ink-900">{prop.inquiriesCount}</div>
+                      <div className="text-[10px] text-stone-600 uppercase tracking-wide">Inquiries</div>
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-navy-900">{quality.score}%</div>
-                      <div className="text-[10px] text-cream-600 uppercase tracking-wide">Quality</div>
+                      <div className="text-sm font-semibold text-ink-900">{quality.score}%</div>
+                      <div className="text-[10px] text-stone-600 uppercase tracking-wide">Quality</div>
                     </div>
                   </div>
 
                   {quality.recommendations.length > 0 && (
-                    <p className="text-xs text-cream-700">
+                    <p className="text-xs text-stone-700">
                       Tip: {quality.recommendations[0]}
                     </p>
                   )}
 
                   {/* Landlord Action Bar */}
-                  <div className="pt-2 border-t border-cream-100 flex items-center justify-between gap-2">
+                  <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-2">
                     <button
                       onClick={() => togglePropertyAvailability(prop.id)}
                       className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-colors cursor-pointer ${
                         prop.isAvailable
-                          ? 'bg-cream-100 hover:bg-cream-200 text-navy-700'
-                          : 'bg-sage-50 hover:bg-sage-100 text-sage-700 border border-sage-200'
+                          ? 'bg-stone-100 hover:bg-stone-200 text-ink-700'
+                          : 'bg-tea-50 hover:bg-tea-100 text-tea-700 border border-tea-200'
                       }`}
                     >
                       {prop.isAvailable ? 'Mark as Rented' : 'Mark as Available'}
@@ -555,7 +553,7 @@ export const LandlordDashboardView: React.FC = () => {
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => openModal('PROPERTY_DETAILS', { property: prop })}
-                        className="p-2 text-cream-600 hover:text-navy-900 rounded-xl hover:bg-cream-100 transition-colors"
+                        className="p-2 text-stone-600 hover:text-ink-900 rounded-xl hover:bg-stone-100 transition-colors"
                         title="Preview Public Listing Page"
                       >
                         <Eye className="w-4 h-4" />
@@ -563,7 +561,7 @@ export const LandlordDashboardView: React.FC = () => {
 
                       <button
                         onClick={() => openModal('ADD_EDIT_PROPERTY', { property: prop })}
-                        className="p-2 text-cream-700 hover:text-navy-700 rounded-xl hover:bg-navy-50 transition-colors"
+                        className="p-2 text-stone-700 hover:text-ink-700 rounded-xl hover:bg-tea-50 transition-colors"
                         title="Edit Property Details"
                       >
                         <Edit className="w-4 h-4" />
@@ -575,7 +573,7 @@ export const LandlordDashboardView: React.FC = () => {
                             deleteProperty(prop.id);
                           }
                         }}
-                        className="p-2 text-cream-500 hover:text-rose-600 rounded-xl hover:bg-rose-50 transition-colors"
+                        className="p-2 text-stone-500 hover:text-rose-600 rounded-xl hover:bg-rose-50 transition-colors"
                         title="Delete Listing"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -594,14 +592,14 @@ export const LandlordDashboardView: React.FC = () => {
       {/* TAB 2: VIEWING APPOINTMENTS & SCHEDULE */}
       {/* ========================================================================= */}
       {activeTab === 'VIEWINGS' && (
-        <div className="bg-white rounded-xl p-6 border border-cream-200 shadow-xs space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-cream-100">
+        <div className="bg-white rounded-xl p-6 border border-stone-200 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
             <div>
-              <h2 className="text-base font-extrabold text-navy-900 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-navy-700" />
+              <h2 className="text-base font-bold text-ink-900 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-ink-700" />
                 <span>Tenant Viewing Walkthroughs ({myViewings.length})</span>
               </h2>
-              <p className="text-xs text-cream-600">
+              <p className="text-xs text-stone-600">
                 Manage in-person inspections, confirm slots, and contact prospective tenants directly.
               </p>
             </div>
@@ -613,8 +611,8 @@ export const LandlordDashboardView: React.FC = () => {
                   onClick={() => setViewingStatusFilter(st)}
                   className={`px-3 py-1 rounded-xl text-xs font-semibold transition-colors ${
                     viewingStatusFilter === st
-                      ? 'bg-navy-900 text-white'
-                      : 'bg-cream-100 text-cream-700 hover:bg-cream-200'
+                      ? 'bg-tea-700 text-white'
+                      : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
                   }`}
                 >
                   {st}
@@ -632,7 +630,7 @@ export const LandlordDashboardView: React.FC = () => {
                 return (
                   <div
                     key={v.id}
-                    className="p-5 rounded-lg bg-cream-50 border border-cream-200 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5"
+                    className="p-5 rounded-lg bg-stone-50 border border-stone-200 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5"
                   >
                     <div className="flex items-start sm:items-center gap-4">
                       <img
@@ -642,13 +640,13 @@ export const LandlordDashboardView: React.FC = () => {
                       />
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-bold text-navy-900">{v.propertyTitle}</h4>
+                          <h4 className="text-xs font-bold text-ink-900">{v.propertyTitle}</h4>
                           <span
-                            className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                            className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
                               v.status === 'PENDING'
                                 ? 'bg-amber-100 text-amber-800'
                                 : v.status === 'CONFIRMED'
-                                ? 'bg-sage-100 text-sage-800'
+                                ? 'bg-tea-100 text-tea-800'
                                 : 'bg-rose-100 text-rose-800'
                             }`}
                           >
@@ -656,23 +654,23 @@ export const LandlordDashboardView: React.FC = () => {
                           </span>
                         </div>
 
-                        <div className="text-xs text-navy-700 mt-1 flex flex-wrap items-center gap-2 font-medium">
+                        <div className="text-xs text-ink-700 mt-1 flex flex-wrap items-center gap-2 font-medium">
                           <span>Tenant: <strong>{v.tenantName}</strong></span>
                           <span>•</span>
-                          <span className="text-cream-600">{v.tenantEmail}</span>
+                          <span className="text-stone-600">{v.tenantEmail}</span>
                         </div>
 
-                        <div className="text-xs text-cream-700 flex items-center gap-2 mt-1">
-                          <span className="flex items-center gap-1 font-bold text-navy-900">
-                            <Clock className="w-3.5 h-3.5 text-navy-700" />
+                        <div className="text-xs text-stone-700 flex items-center gap-2 mt-1">
+                          <span className="flex items-center gap-1 font-bold text-ink-900">
+                            <Clock className="w-3.5 h-3.5 text-ink-700" />
                             {v.requestedDate} @ {v.requestedTimeSlot}
                           </span>
                           <span>•</span>
-                          <span className="text-cream-600">{v.propertyLocation}</span>
+                          <span className="text-stone-600">{v.propertyLocation}</span>
                         </div>
 
                         {v.notes && (
-                          <p className="text-[11px] text-cream-600 italic mt-1.5 bg-white px-2.5 py-1 rounded-lg border border-cream-200 inline-block">
+                          <p className="text-[11px] text-stone-600 italic mt-1.5 bg-white px-2.5 py-1 rounded-lg border border-stone-200 inline-block">
                             Tenant Note: "{v.notes}"
                           </p>
                         )}
@@ -683,10 +681,10 @@ export const LandlordDashboardView: React.FC = () => {
                       {/* Direct Contact Links */}
                       <a
                         href={`tel:${phoneNum}`}
-                        className="px-3 py-2 rounded-xl bg-white hover:bg-cream-100 border border-cream-200 text-xs font-bold text-navy-700 transition-colors flex items-center gap-1.5"
+                        className="px-3 py-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-xs font-bold text-ink-700 transition-colors flex items-center gap-1.5"
                         title="Call Tenant"
                       >
-                        <Phone className="w-3.5 h-3.5 text-sage-700" />
+                        <Phone className="w-3.5 h-3.5 text-tea-700" />
                         <span>Call</span>
                       </a>
 
@@ -694,10 +692,10 @@ export const LandlordDashboardView: React.FC = () => {
                         href={`https://wa.me/${cleanPhone}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-3 py-2 rounded-xl bg-sage-50 hover:bg-sage-100 border border-sage-200 text-xs font-bold text-sage-700 transition-colors flex items-center gap-1.5"
+                        className="px-3 py-2 rounded-xl bg-tea-50 hover:bg-tea-100 border border-tea-200 text-xs font-bold text-tea-700 transition-colors flex items-center gap-1.5"
                         title="Chat via WhatsApp"
                       >
-                        <MessageSquare className="w-3.5 h-3.5 text-sage-700" />
+                        <MessageSquare className="w-3.5 h-3.5 text-tea-700" />
                         <span>WhatsApp</span>
                       </a>
 
@@ -705,7 +703,7 @@ export const LandlordDashboardView: React.FC = () => {
                         <>
                           <button
                             onClick={() => updateViewingStatus(v.id, 'APPROVED')}
-                            className="px-4 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                            className="px-4 py-2 rounded-xl bg-tea-700 hover:bg-tea-600 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>Confirm</span>
@@ -720,7 +718,7 @@ export const LandlordDashboardView: React.FC = () => {
                           </button>
                         </>
                       ) : (
-                        <span className="text-xs font-bold text-cream-600 bg-white px-3 py-1.5 rounded-xl border border-cream-200">
+                        <span className="text-xs font-bold text-stone-600 bg-white px-3 py-1.5 rounded-xl border border-stone-200">
                           Viewing {v.status.toLowerCase()}
                         </span>
                       )}
@@ -730,8 +728,8 @@ export const LandlordDashboardView: React.FC = () => {
               })}
             </div>
           ) : (
-            <div className="text-center py-12 text-cream-500 text-xs space-y-2">
-              <Calendar className="w-8 h-8 text-cream-400 mx-auto" />
+            <div className="text-center py-12 text-stone-500 text-xs space-y-2">
+              <Calendar className="w-8 h-8 text-stone-400 mx-auto" />
               <p>No viewing requests match the selected filter.</p>
             </div>
           )}
@@ -742,12 +740,12 @@ export const LandlordDashboardView: React.FC = () => {
       {/* TAB 3: TENANT INQUIRIES & DIRECT MESSAGING */}
       {/* ========================================================================= */}
       {activeTab === 'INQUIRIES' && (
-        <div className="bg-white rounded-xl border border-cream-200 overflow-hidden shadow-xs grid grid-cols-1 lg:grid-cols-3 min-h-[550px]">
+        <div className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-xs grid grid-cols-1 lg:grid-cols-3 min-h-[550px]">
           {/* Left Inquiries List */}
-          <div className="border-r border-cream-200 divide-y divide-cream-100 overflow-y-auto max-h-[600px]">
-            <div className="p-4 bg-cream-50 font-bold text-xs uppercase tracking-wider text-cream-700 flex items-center justify-between">
+          <div className="border-r border-stone-200 divide-y divide-stone-100 overflow-y-auto max-h-[600px]">
+            <div className="p-4 bg-stone-50 font-bold text-xs uppercase tracking-wider text-stone-700 flex items-center justify-between">
               <span>Leads & Inquiries</span>
-              <span className="text-sage-700">{myInquiries.length} total</span>
+              <span className="text-tea-700">{myInquiries.length} total</span>
             </div>
 
             {myInquiries.map(inq => {
@@ -757,7 +755,7 @@ export const LandlordDashboardView: React.FC = () => {
                   key={inq.id}
                   onClick={() => setSelectedInquiryId(inq.id)}
                   className={`w-full p-4 text-left transition-colors flex items-start gap-3.5 cursor-pointer ${
-                    active ? 'bg-sage-50 border-l-4 border-emerald-600' : 'hover:bg-cream-50'
+                    active ? 'bg-tea-50 border-l-4 border-emerald-600' : 'hover:bg-stone-50'
                   }`}
                 >
                   <img
@@ -767,13 +765,13 @@ export const LandlordDashboardView: React.FC = () => {
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between text-xs mb-0.5">
-                      <span className="font-extrabold text-navy-900 truncate">{inq.tenantName}</span>
-                      <span className="text-[10px] text-cream-500 font-mono">
+                      <span className="font-bold text-ink-900 truncate">{inq.tenantName}</span>
+                      <span className="text-[10px] text-stone-500 font-mono">
                         {new Date(inq.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
-                    <p className="text-xs font-semibold text-navy-800 truncate">{inq.subject}</p>
-                    <p className="text-[11px] text-cream-600 truncate mt-0.5">{inq.message}</p>
+                    <p className="text-xs font-semibold text-ink-800 truncate">{inq.subject}</p>
+                    <p className="text-[11px] text-stone-600 truncate mt-0.5">{inq.message}</p>
                   </div>
                 </button>
               );
@@ -786,7 +784,7 @@ export const LandlordDashboardView: React.FC = () => {
               const activeInq = myInquiries.find(i => i.id === selectedInquiryId) || myInquiries[0];
               if (!activeInq) {
                 return (
-                  <div className="text-center py-20 text-cream-500 text-xs">
+                  <div className="text-center py-20 text-stone-500 text-xs">
                     No inquiries received yet. Inquiries submitted by tenants on your listings will appear here.
                   </div>
                 );
@@ -796,49 +794,49 @@ export const LandlordDashboardView: React.FC = () => {
                 <>
                   <div className="space-y-4">
                     {/* Header */}
-                    <div className="flex items-start justify-between pb-4 border-b border-cream-100">
+                    <div className="flex items-start justify-between pb-4 border-b border-stone-100">
                       <div>
-                        <h3 className="text-sm font-bold text-navy-900">{activeInq.subject}</h3>
-                        <p className="text-xs text-cream-600 mt-0.5">
+                        <h3 className="text-sm font-bold text-ink-900">{activeInq.subject}</h3>
+                        <p className="text-xs text-stone-600 mt-0.5">
                           Regarding <strong>{activeInq.propertyTitle}</strong> ({activeInq.propertyLocation})
                         </p>
                       </div>
                       <div className="text-right">
-                        <span className="text-xs font-bold text-navy-900 block">{activeInq.tenantName}</span>
-                        <span className="text-[11px] text-cream-500">{activeInq.tenantEmail}</span>
+                        <span className="text-xs font-bold text-ink-900 block">{activeInq.tenantName}</span>
+                        <span className="text-[11px] text-stone-500">{activeInq.tenantEmail}</span>
                       </div>
                     </div>
 
                     {/* Tenant Message */}
-                    <div className="bg-cream-50 p-4 rounded-lg border border-cream-200 space-y-1.5">
+                    <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-navy-800">{activeInq.tenantName}</span>
-                        <span className="text-[10px] text-cream-500">
+                        <span className="font-bold text-ink-800">{activeInq.tenantName}</span>
+                        <span className="text-[10px] text-stone-500">
                           {new Date(activeInq.createdAt).toLocaleString()}
                         </span>
                       </div>
-                      <p className="text-xs text-navy-700 leading-relaxed">{activeInq.message}</p>
+                      <p className="text-xs text-ink-700 leading-relaxed">{activeInq.message}</p>
                     </div>
 
                     {/* Landlord Existing Reply if any */}
                     {activeInq.reply && (
-                      <div className="bg-sage-50 p-4 rounded-lg border border-sage-200 space-y-1.5 ml-6">
+                      <div className="bg-tea-50 p-4 rounded-lg border border-tea-200 space-y-1.5 ml-6">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-sage-900 flex items-center gap-1">
-                            <Check className="w-3.5 h-3.5 text-sage-700" />
+                          <span className="font-bold text-tea-900 flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5 text-tea-700" />
                             Your Reply ({currentUser?.fullName || 'Landlord'})
                           </span>
-                          <span className="text-[10px] text-sage-700">
+                          <span className="text-[10px] text-tea-700">
                             {activeInq.repliedAt ? new Date(activeInq.repliedAt).toLocaleString() : 'Sent'}
                           </span>
                         </div>
-                        <p className="text-xs text-sage-800 leading-relaxed">{activeInq.reply}</p>
+                        <p className="text-xs text-tea-800 leading-relaxed">{activeInq.reply}</p>
                       </div>
                     )}
 
                     {/* Rwanda Canned Quick Responses */}
                     <div className="space-y-1.5 pt-2">
-                      <span className="text-[11px] font-bold text-cream-600 block">Quick Rwandan Reply Templates:</span>
+                      <span className="text-[11px] font-bold text-stone-600 block">Quick Rwandan Reply Templates:</span>
                       <div className="flex flex-wrap gap-1.5">
                         {[
                           'Muraho! The unit is vacant and available for immediate move-in.',
@@ -850,7 +848,7 @@ export const LandlordDashboardView: React.FC = () => {
                             key={idx}
                             type="button"
                             onClick={() => setReplyText(template)}
-                            className="text-[10px] bg-cream-100 hover:bg-cream-200 text-navy-700 px-2.5 py-1 rounded-lg transition-colors text-left"
+                            className="text-[10px] bg-stone-100 hover:bg-stone-200 text-ink-700 px-2.5 py-1 rounded-lg transition-colors text-left"
                           >
                             "{template}"
                           </button>
@@ -860,23 +858,23 @@ export const LandlordDashboardView: React.FC = () => {
                   </div>
 
                   {/* Reply Input Box */}
-                  <div className="pt-4 border-t border-cream-100 space-y-3">
+                  <div className="pt-4 border-t border-stone-100 space-y-3">
                     <textarea
                       rows={3}
                       placeholder={`Type your reply to ${activeInq.tenantName}...`}
                       value={replyText}
                       onChange={e => setReplyText(e.target.value)}
-                      className="w-full p-3 text-xs rounded-lg bg-cream-50 border border-cream-200 focus:outline-none focus:ring-2 focus:ring-navy-900"
+                      className="w-full p-3 text-xs rounded-lg bg-stone-50 border border-stone-200 focus:outline-none focus:ring-2 focus:ring-tea-600"
                     />
 
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-cream-500">
+                      <span className="text-[11px] text-stone-500">
                         Direct reply will notify the tenant via Smart Rental message center.
                       </span>
                       <button
                         onClick={() => handleSendInquiryReply(activeInq.id)}
                         disabled={!replyText.trim()}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-navy-900 hover:bg-navy-800 disabled:opacity-50 text-white shadow-xs transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-tea-700 hover:bg-tea-600 disabled:opacity-50 text-white shadow-xs transition-colors cursor-pointer"
                       >
                         <Send className="w-3.5 h-3.5" />
                         <span>Send Reply</span>
@@ -896,13 +894,13 @@ export const LandlordDashboardView: React.FC = () => {
       {activeTab === 'LEASES_PAYMENTS' && (
         <div className="space-y-6">
           {/* Top Leases Action Bar */}
-          <div className="bg-white rounded-xl p-6 border border-cream-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-white rounded-xl p-6 border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-base font-extrabold text-navy-900 flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-sage-700" />
+              <h2 className="text-base font-bold text-ink-900 flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-tea-700" />
                 <span>Active Leases & Rent Collection</span>
               </h2>
-              <p className="text-xs text-cream-600 mt-0.5">
+              <p className="text-xs text-stone-600 mt-0.5">
                 Track Rwandan residential leases, log MTN MoMo & Bank payments, and generate official digital receipts.
               </p>
             </div>
@@ -916,7 +914,7 @@ export const LandlordDashboardView: React.FC = () => {
                   }
                   setShowNewLeaseModal(true);
                 }}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-navy-900 hover:bg-navy-800 text-white shadow-xs transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-tea-700 hover:bg-tea-600 text-white shadow-xs transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>New Lease Agreement</span>
@@ -925,8 +923,8 @@ export const LandlordDashboardView: React.FC = () => {
           </div>
 
           {/* Active Leases List */}
-          <div className="bg-white rounded-xl p-6 border border-cream-200 shadow-xs space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-cream-600">
+          <div className="bg-white rounded-xl p-6 border border-stone-200 shadow-xs space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-stone-600">
               Active Tenant Leases ({myLeases.length})
             </h3>
 
@@ -934,26 +932,26 @@ export const LandlordDashboardView: React.FC = () => {
               {myLeases.map(lease => (
                 <div
                   key={lease.id}
-                  className="p-5 rounded-lg bg-cream-50 border border-cream-200 space-y-3.5"
+                  className="p-5 rounded-lg bg-stone-50 border border-stone-200 space-y-3.5"
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-sage-100 text-sage-800">
+                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-tea-100 text-tea-800">
                         {lease.status}
                       </span>
-                      <h4 className="text-sm font-extrabold text-navy-900 mt-1 line-clamp-1">
+                      <h4 className="text-sm font-bold text-ink-900 mt-1 line-clamp-1">
                         {lease.propertyTitle}
                       </h4>
-                      <p className="text-xs text-cream-600 flex items-center gap-1 mt-0.5">
-                        <MapPin className="w-3 h-3 text-navy-700" />
+                      <p className="text-xs text-stone-600 flex items-center gap-1 mt-0.5">
+                        <MapPin className="w-3 h-3 text-ink-700" />
                         {lease.propertySector}
                       </p>
                     </div>
 
                     <span
-                      className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                      className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
                         lease.paymentStatus === 'PAID'
-                          ? 'bg-sage-100 text-sage-800'
+                          ? 'bg-tea-100 text-tea-800'
                           : 'bg-amber-100 text-amber-800'
                       }`}
                     >
@@ -961,22 +959,22 @@ export const LandlordDashboardView: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="bg-white p-3 rounded-xl border border-cream-200 text-xs space-y-1 font-medium">
-                    <div className="flex items-center justify-between text-navy-700">
+                  <div className="bg-white p-3 rounded-xl border border-stone-200 text-xs space-y-1 font-medium">
+                    <div className="flex items-center justify-between text-ink-700">
                       <span>Tenant:</span>
-                      <strong className="text-navy-900">{lease.tenantName}</strong>
+                      <strong className="text-ink-900">{lease.tenantName}</strong>
                     </div>
-                    <div className="flex items-center justify-between text-navy-700">
+                    <div className="flex items-center justify-between text-ink-700">
                       <span>Phone:</span>
-                      <span className="font-mono text-cream-700">{lease.tenantPhone}</span>
+                      <span className="font-mono text-stone-700">{lease.tenantPhone}</span>
                     </div>
-                    <div className="flex items-center justify-between text-navy-700">
+                    <div className="flex items-center justify-between text-ink-700">
                       <span>Monthly Rent:</span>
-                      <strong className="text-sage-700 font-mono">{lease.monthlyRent.toLocaleString()} RWF</strong>
+                      <strong className="text-tea-700 font-mono">{lease.monthlyRent.toLocaleString()} RWF</strong>
                     </div>
-                    <div className="flex items-center justify-between text-navy-700">
+                    <div className="flex items-center justify-between text-ink-700">
                       <span>Lease Period:</span>
-                      <span className="text-cream-600">{lease.startDate} → {lease.endDate}</span>
+                      <span className="text-stone-600">{lease.startDate} → {lease.endDate}</span>
                     </div>
                   </div>
 
@@ -987,7 +985,7 @@ export const LandlordDashboardView: React.FC = () => {
                         setPaymentAmount(lease.monthlyRent);
                         setShowPaymentModal(true);
                       }}
-                      className="flex-1 py-2 px-3 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                      className="flex-1 py-2 px-3 rounded-xl bg-tea-700 hover:bg-tea-600 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer"
                     >
                       <DollarSign className="w-3.5 h-3.5" />
                       <span>Record Payment</span>
@@ -999,10 +997,10 @@ export const LandlordDashboardView: React.FC = () => {
                         navigator.clipboard.writeText(smsText);
                         addToast('info', 'Copied MoMo Rent Reminder SMS to clipboard!');
                       }}
-                      className="p-2 rounded-xl bg-white hover:bg-cream-100 border border-cream-200 text-navy-700 transition-colors"
+                      className="p-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-ink-700 transition-colors"
                       title="Copy MoMo Rent Reminder SMS"
                     >
-                      <Send className="w-3.5 h-3.5 text-navy-700" />
+                      <Send className="w-3.5 h-3.5 text-ink-700" />
                     </button>
                   </div>
                 </div>
@@ -1011,16 +1009,16 @@ export const LandlordDashboardView: React.FC = () => {
           </div>
 
           {/* Payment Receipts History Table */}
-          <div className="bg-white rounded-xl p-6 border border-cream-200 shadow-xs space-y-4">
+          <div className="bg-white rounded-xl p-6 border border-stone-200 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-cream-600">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-600">
                 Payment History & Official Receipts ({myPayments.length})
               </h3>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
-                <thead className="bg-cream-50 text-cream-600 font-bold uppercase tracking-wider border-b border-cream-200">
+                <thead className="bg-stone-50 text-stone-600 font-bold uppercase tracking-wider border-b border-stone-200">
                   <tr>
                     <th className="p-3">Receipt #</th>
                     <th className="p-3">Property / Tenant</th>
@@ -1031,28 +1029,28 @@ export const LandlordDashboardView: React.FC = () => {
                     <th className="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-cream-100">
+                <tbody className="divide-y divide-stone-100">
                   {myPayments.map(pay => (
-                    <tr key={pay.id} className="hover:bg-cream-50 transition-colors">
-                      <td className="p-3 font-mono font-bold text-navy-900">{pay.receiptNumber}</td>
+                    <tr key={pay.id} className="hover:bg-stone-50 transition-colors">
+                      <td className="p-3 font-mono font-bold text-ink-900">{pay.receiptNumber}</td>
                       <td className="p-3">
-                        <div className="font-bold text-navy-900">{pay.propertyTitle}</div>
-                        <div className="text-cream-600">{pay.tenantName}</div>
+                        <div className="font-bold text-ink-900">{pay.propertyTitle}</div>
+                        <div className="text-stone-600">{pay.tenantName}</div>
                       </td>
                       <td className="p-3">
-                        <span className="px-2 py-0.5 rounded bg-cream-100 text-navy-700 font-bold uppercase text-[10px]">
+                        <span className="px-2 py-0.5 rounded bg-stone-100 text-ink-700 font-bold uppercase text-[10px]">
                           {pay.paymentMethod.replace('_', ' ')}
                         </span>
                       </td>
-                      <td className="p-3 font-mono font-extrabold text-sage-700">
+                      <td className="p-3 font-mono font-bold text-tea-700">
                         {pay.amountRwf.toLocaleString()} RWF
                       </td>
-                      <td className="p-3 text-navy-700">{pay.paidForMonth}</td>
-                      <td className="p-3 text-cream-600">{pay.paymentDate}</td>
+                      <td className="p-3 text-ink-700">{pay.paidForMonth}</td>
+                      <td className="p-3 text-stone-600">{pay.paymentDate}</td>
                       <td className="p-3 text-right">
                         <button
                           onClick={() => setActiveReceipt(pay)}
-                          className="px-3 py-1.5 rounded-xl bg-cream-100 hover:bg-cream-200 text-navy-800 font-bold text-[11px] transition-colors cursor-pointer"
+                          className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-ink-800 font-bold text-[11px] transition-colors cursor-pointer"
                         >
                           View Receipt
                         </button>
@@ -1071,13 +1069,13 @@ export const LandlordDashboardView: React.FC = () => {
       {/* ========================================================================= */}
       {activeTab === 'MAINTENANCE' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-xl p-6 border border-cream-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-white rounded-xl p-6 border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-base font-extrabold text-navy-900 flex items-center gap-2">
+              <h2 className="text-base font-bold text-ink-900 flex items-center gap-2">
                 <Wrench className="w-5 h-5 text-amber-600" />
                 <span>Property Maintenance & Repairs</span>
               </h2>
-              <p className="text-xs text-cream-600 mt-0.5">
+              <p className="text-xs text-stone-600 mt-0.5">
                 Track plumbing, electrical backup, reserve water tank maintenance, and local Rwandan contractor costs.
               </p>
             </div>
@@ -1098,52 +1096,52 @@ export const LandlordDashboardView: React.FC = () => {
             {myMaintenance.map(ticket => (
               <div
                 key={ticket.id}
-                className="bg-white p-5 rounded-xl border border-cream-200 shadow-xs space-y-3.5 flex flex-col justify-between"
+                className="bg-white p-5 rounded-xl border border-stone-200 shadow-xs space-y-3.5 flex flex-col justify-between"
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-cream-100 text-navy-700">
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-stone-100 text-ink-700">
                       {ticket.category.replace('_', ' ')}
                     </span>
                     <span
-                      className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                      className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
                         ticket.priority === 'URGENT' || ticket.priority === 'HIGH'
                           ? 'bg-rose-100 text-rose-800'
-                          : 'bg-navy-100 text-navy-800'
+                          : 'bg-tea-100 text-ink-800'
                       }`}
                     >
                       {ticket.priority} Priority
                     </span>
                   </div>
 
-                  <h3 className="text-xs font-extrabold text-navy-900 line-clamp-1">{ticket.title}</h3>
-                  <p className="text-xs text-cream-700">{ticket.description}</p>
+                  <h3 className="text-xs font-bold text-ink-900 line-clamp-1">{ticket.title}</h3>
+                  <p className="text-xs text-stone-700">{ticket.description}</p>
                 </div>
 
-                <div className="space-y-2 pt-2 border-t border-cream-100 text-xs">
-                  <div className="flex items-center justify-between text-cream-600">
+                <div className="space-y-2 pt-2 border-t border-stone-100 text-xs">
+                  <div className="flex items-center justify-between text-stone-600">
                     <span>Unit:</span>
-                    <strong className="text-navy-800 truncate max-w-[150px]">{ticket.propertyTitle}</strong>
+                    <strong className="text-ink-800 truncate max-w-[150px]">{ticket.propertyTitle}</strong>
                   </div>
-                  <div className="flex items-center justify-between text-cream-600">
+                  <div className="flex items-center justify-between text-stone-600">
                     <span>Est. Cost:</span>
                     <strong className="text-amber-700 font-mono">{ticket.estimatedCostRwf.toLocaleString()} RWF</strong>
                   </div>
                   {ticket.contractorName && (
-                    <div className="flex items-center justify-between text-cream-600">
+                    <div className="flex items-center justify-between text-stone-600">
                       <span>Contractor:</span>
-                      <span className="text-navy-700">{ticket.contractorName}</span>
+                      <span className="text-ink-700">{ticket.contractorName}</span>
                     </div>
                   )}
 
                   <div className="flex items-center justify-between pt-2">
                     <span
-                      className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${
+                      className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${
                         ticket.status === 'RESOLVED'
-                          ? 'bg-sage-100 text-sage-800'
+                          ? 'bg-tea-100 text-tea-800'
                           : ticket.status === 'IN_PROGRESS'
                           ? 'bg-amber-100 text-amber-800'
-                          : 'bg-cream-100 text-navy-800'
+                          : 'bg-stone-100 text-ink-800'
                       }`}
                     >
                       {ticket.status.replace('_', ' ')}
@@ -1152,13 +1150,13 @@ export const LandlordDashboardView: React.FC = () => {
                     {ticket.status !== 'RESOLVED' ? (
                       <button
                         onClick={() => updateMaintenanceTicket(ticket.id, { status: 'RESOLVED', resolvedDate: new Date().toISOString().slice(0, 10) })}
-                        className="px-3 py-1 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-bold text-[11px] transition-colors cursor-pointer flex items-center gap-1"
+                        className="px-3 py-1 rounded-xl bg-tea-700 hover:bg-tea-600 text-white font-bold text-[11px] transition-colors cursor-pointer flex items-center gap-1"
                       >
                         <Check className="w-3 h-3" />
                         <span>Mark Resolved</span>
                       </button>
                     ) : (
-                      <span className="text-[10px] text-cream-500">Resolved {ticket.resolvedDate}</span>
+                      <span className="text-[10px] text-stone-500">Resolved {ticket.resolvedDate}</span>
                     )}
                   </div>
                 </div>
@@ -1174,20 +1172,20 @@ export const LandlordDashboardView: React.FC = () => {
       {activeTab === 'YIELD_CALCULATOR' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Inputs */}
-          <div className="lg:col-span-1 bg-white p-6 rounded-xl border border-cream-200 shadow-xs space-y-4">
+          <div className="lg:col-span-1 bg-white p-6 rounded-xl border border-stone-200 shadow-xs space-y-4">
             <div>
-              <h2 className="text-base font-extrabold text-navy-900 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-sage-700" />
+              <h2 className="text-base font-bold text-ink-900 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-tea-700" />
                 <span>ROI & Yield Calculator</span>
               </h2>
-              <p className="text-xs text-cream-600 mt-1">
+              <p className="text-xs text-stone-600 mt-1">
                 Calculate gross & net rental returns customized for Kigali & Rwandan secondary cities.
               </p>
             </div>
 
             <div className="space-y-3.5 pt-2">
               <div>
-                <label className="block text-xs font-bold text-navy-700 mb-1">
+                <label className="block text-xs font-bold text-ink-700 mb-1">
                   Property Asset Value / Purchase Price (RWF)
                 </label>
                 <input
@@ -1195,15 +1193,15 @@ export const LandlordDashboardView: React.FC = () => {
                   step="1000000"
                   value={calcPropValue}
                   onChange={e => setCalcPropValue(Number(e.target.value))}
-                  className="w-full p-2.5 text-xs rounded-xl bg-cream-50 border border-cream-200 font-mono font-bold focus:ring-2 focus:ring-navy-900"
+                  className="w-full p-2.5 text-xs rounded-xl bg-stone-50 border border-stone-200 font-mono font-bold focus:ring-2 focus:ring-tea-600"
                 />
-                <span className="text-[10px] text-cream-500 mt-0.5 block">
+                <span className="text-[10px] text-stone-500 mt-0.5 block">
                   {(calcPropValue / 1000000).toFixed(1)} Million RWF
                 </span>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-navy-700 mb-1">
+                <label className="block text-xs font-bold text-ink-700 mb-1">
                   Monthly Rent Charged (RWF)
                 </label>
                 <input
@@ -1211,12 +1209,12 @@ export const LandlordDashboardView: React.FC = () => {
                   step="50000"
                   value={calcMonthlyRent}
                   onChange={e => setCalcMonthlyRent(Number(e.target.value))}
-                  className="w-full p-2.5 text-xs rounded-xl bg-cream-50 border border-cream-200 font-mono font-bold focus:ring-2 focus:ring-navy-900"
+                  className="w-full p-2.5 text-xs rounded-xl bg-stone-50 border border-stone-200 font-mono font-bold focus:ring-2 focus:ring-tea-600"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-navy-700 mb-1">
+                <label className="block text-xs font-bold text-ink-700 mb-1">
                   Estimated Annual Expenses & Taxes (RWF)
                 </label>
                 <input
@@ -1224,16 +1222,16 @@ export const LandlordDashboardView: React.FC = () => {
                   step="50000"
                   value={calcAnnualExpenses}
                   onChange={e => setCalcAnnualExpenses(Number(e.target.value))}
-                  className="w-full p-2.5 text-xs rounded-xl bg-cream-50 border border-cream-200 font-mono font-bold focus:ring-2 focus:ring-navy-900"
+                  className="w-full p-2.5 text-xs rounded-xl bg-stone-50 border border-stone-200 font-mono font-bold focus:ring-2 focus:ring-tea-600"
                 />
-                <span className="text-[10px] text-cream-500 mt-0.5 block">
+                <span className="text-[10px] text-stone-500 mt-0.5 block">
                   Includes Rwanda rental income tax, maintenance, security guard share.
                 </span>
               </div>
 
               {/* Location Presets */}
               <div className="pt-2">
-                <span className="text-[11px] font-bold text-cream-600 block mb-1.5">Rwanda Market Presets:</span>
+                <span className="text-[11px] font-bold text-stone-600 block mb-1.5">Rwanda Market Presets:</span>
                 <div className="grid grid-cols-2 gap-1.5">
                   <button
                     type="button"
@@ -1242,10 +1240,10 @@ export const LandlordDashboardView: React.FC = () => {
                       setCalcMonthlyRent(450000);
                       setCalcAnnualExpenses(500000);
                     }}
-                    className="p-2 text-left bg-cream-50 hover:bg-cream-100 rounded-xl border border-cream-200 text-[10px]"
+                    className="p-2 text-left bg-stone-50 hover:bg-stone-100 rounded-xl border border-stone-200 text-[10px]"
                   >
                     <strong>Kimihurura 2-Bed</strong>
-                    <div className="text-cream-600">50M Val • 450k Rent</div>
+                    <div className="text-stone-600">50M Val • 450k Rent</div>
                   </button>
 
                   <button
@@ -1255,10 +1253,10 @@ export const LandlordDashboardView: React.FC = () => {
                       setCalcMonthlyRent(1200000);
                       setCalcAnnualExpenses(1400000);
                     }}
-                    className="p-2 text-left bg-cream-50 hover:bg-cream-100 rounded-xl border border-cream-200 text-[10px]"
+                    className="p-2 text-left bg-stone-50 hover:bg-stone-100 rounded-xl border border-stone-200 text-[10px]"
                   >
                     <strong>Nyarutarama Villa</strong>
-                    <div className="text-cream-600">120M Val • 1.2M Rent</div>
+                    <div className="text-stone-600">120M Val • 1.2M Rent</div>
                   </button>
 
                   <button
@@ -1268,10 +1266,10 @@ export const LandlordDashboardView: React.FC = () => {
                       setCalcMonthlyRent(350000);
                       setCalcAnnualExpenses(350000);
                     }}
-                    className="p-2 text-left bg-cream-50 hover:bg-cream-100 rounded-xl border border-cream-200 text-[10px]"
+                    className="p-2 text-left bg-stone-50 hover:bg-stone-100 rounded-xl border border-stone-200 text-[10px]"
                   >
                     <strong>Musanze Townhouse</strong>
-                    <div className="text-cream-600">35M Val • 350k Rent</div>
+                    <div className="text-stone-600">35M Val • 350k Rent</div>
                   </button>
 
                   <button
@@ -1281,10 +1279,10 @@ export const LandlordDashboardView: React.FC = () => {
                       setCalcMonthlyRent(400000);
                       setCalcAnnualExpenses(400000);
                     }}
-                    className="p-2 text-left bg-cream-50 hover:bg-cream-100 rounded-xl border border-cream-200 text-[10px]"
+                    className="p-2 text-left bg-stone-50 hover:bg-stone-100 rounded-xl border border-stone-200 text-[10px]"
                   >
                     <strong>Rubavu Beach Villa</strong>
-                    <div className="text-cream-600">40M Val • 400k Rent</div>
+                    <div className="text-stone-600">40M Val • 400k Rent</div>
                   </button>
                 </div>
               </div>
@@ -1293,49 +1291,49 @@ export const LandlordDashboardView: React.FC = () => {
 
           {/* Right Results & Benchmarks */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-navy-900 text-white p-6 rounded-xl shadow-md space-y-6">
-              <div className="flex items-center justify-between border-b border-navy-800 pb-4">
+            <div className="palette-light bg-tea-700 text-white p-6 rounded-xl shadow-md space-y-6">
+              <div className="flex items-center justify-between border-b border-tea-600 pb-4">
                 <div>
-                  <h3 className="text-lg font-black tracking-tight">Yield & Performance Output</h3>
-                  <p className="text-xs text-cream-200">Based on Rwandan standard rental market equations</p>
+                  <h3 className="text-lg font-bold tracking-tight">Yield & Performance Output</h3>
+                  <p className="text-xs text-stone-200">Based on Rwandan standard rental market equations</p>
                 </div>
-                <span className="px-3 py-1 bg-navy-800 text-cream-200 rounded-full text-xs font-bold">
+                <span className="px-3 py-1 bg-tea-600 text-stone-200 rounded-full text-xs font-bold">
                   Rwanda Real Estate 2026
                 </span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-navy-950/50 p-4 rounded-lg border border-navy-800">
-                  <span className="text-[10px] uppercase font-bold text-cream-300">Gross Yield</span>
-                  <div className="text-2xl font-black text-white mt-1">{grossRentalYield}%</div>
-                  <span className="text-[10px] text-cream-300">Annual rent / Value</span>
+                <div className="bg-ink-950/50 p-4 rounded-lg border border-tea-600">
+                  <span className="text-[10px] uppercase font-bold text-stone-300">Gross Yield</span>
+                  <div className="text-2xl font-bold text-white mt-1">{grossRentalYield}%</div>
+                  <span className="text-[10px] text-stone-300">Annual rent / Value</span>
                 </div>
 
-                <div className="bg-navy-950/50 p-4 rounded-lg border border-navy-800">
-                  <span className="text-[10px] uppercase font-bold text-cream-300">Net Yield</span>
-                  <div className="text-2xl font-black text-amber-300 mt-1">{netRentalYield}%</div>
-                  <span className="text-[10px] text-cream-300">After all expenses</span>
+                <div className="bg-ink-950/50 p-4 rounded-lg border border-tea-600">
+                  <span className="text-[10px] uppercase font-bold text-stone-300">Net Yield</span>
+                  <div className="text-2xl font-bold text-amber-300 mt-1">{netRentalYield}%</div>
+                  <span className="text-[10px] text-stone-300">After all expenses</span>
                 </div>
 
-                <div className="bg-navy-950/50 p-4 rounded-lg border border-navy-800">
-                  <span className="text-[10px] uppercase font-bold text-cream-300">Net Cash Flow</span>
-                  <div className="text-xl font-black text-white mt-1 font-mono">
+                <div className="bg-ink-950/50 p-4 rounded-lg border border-tea-600">
+                  <span className="text-[10px] uppercase font-bold text-stone-300">Net Cash Flow</span>
+                  <div className="text-xl font-bold text-white mt-1 font-mono">
                     {(netAnnualRent / 1000000).toFixed(2)}M <span className="text-xs font-normal">RWF/yr</span>
                   </div>
-                  <span className="text-[10px] text-cream-300">Annual net profit</span>
+                  <span className="text-[10px] text-stone-300">Annual net profit</span>
                 </div>
 
-                <div className="bg-navy-950/50 p-4 rounded-lg border border-navy-800">
-                  <span className="text-[10px] uppercase font-bold text-cream-300">Payback Period</span>
-                  <div className="text-2xl font-black text-white mt-1">{paybackYears} <span className="text-xs font-normal">Years</span></div>
-                  <span className="text-[10px] text-cream-300">Capital recovery</span>
+                <div className="bg-ink-950/50 p-4 rounded-lg border border-tea-600">
+                  <span className="text-[10px] uppercase font-bold text-stone-300">Payback Period</span>
+                  <div className="text-2xl font-bold text-white mt-1">{paybackYears} <span className="text-xs font-normal">Years</span></div>
+                  <span className="text-[10px] text-stone-300">Capital recovery</span>
                 </div>
               </div>
             </div>
 
             {/* Regional Yield Comparisons */}
-            <div className="bg-white p-6 rounded-xl border border-cream-200 shadow-xs space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-cream-600">
+            <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-xs space-y-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-600">
                 Rwanda Regional Rental Index Benchmarks
               </h3>
 
@@ -1349,15 +1347,15 @@ export const LandlordDashboardView: React.FC = () => {
                 ].map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-lg bg-cream-50 border border-cream-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                    className="p-3.5 rounded-lg bg-stone-50 border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
                   >
                     <div>
-                      <strong className="text-navy-900">{item.region}</strong>
-                      <div className="text-cream-600 mt-0.5">Typical Rent: {item.rentRange}</div>
+                      <strong className="text-ink-900">{item.region}</strong>
+                      <div className="text-stone-600 mt-0.5">Typical Rent: {item.rentRange}</div>
                     </div>
                     <div className="text-right">
-                      <span className="font-extrabold text-sage-700 block">{item.avgYield} Avg Yield</span>
-                      <span className="text-[10px] text-cream-600">{item.demand}</span>
+                      <span className="font-bold text-tea-700 block">{item.avgYield} Avg Yield</span>
+                      <span className="text-[10px] text-stone-600">{item.demand}</span>
                     </div>
                   </div>
                 ))}
@@ -1371,21 +1369,21 @@ export const LandlordDashboardView: React.FC = () => {
       {/* MODAL: RECORD RENT PAYMENT */}
       {/* ========================================================================= */}
       {showPaymentModal && (
-        <div className="fixed inset-0 z-50 bg-navy-950/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 border border-cream-200 shadow-2xl space-y-4 text-left animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-cream-100">
+        <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[3px] flex items-center justify-center p-4">
+          <div className="animate-pop bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 border border-stone-200 space-y-4 text-left">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-sage-100 text-sage-700 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-tea-100 text-tea-700 flex items-center justify-center font-bold">
                   <DollarSign className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-navy-900 text-sm">Record Rent Payment</h3>
-                  <p className="text-[11px] text-cream-500">Log incoming MoMo or Bank transfer</p>
+                  <h3 className="font-bold text-ink-900 text-sm">Record Rent Payment</h3>
+                  <p className="text-[11px] text-stone-500">Log incoming MoMo or Bank transfer</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowPaymentModal(false)}
-                className="p-1 text-cream-500 hover:text-navy-700 rounded-lg hover:bg-cream-100"
+                className="p-1 text-stone-500 hover:text-ink-700 rounded-lg hover:bg-stone-100"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -1393,7 +1391,7 @@ export const LandlordDashboardView: React.FC = () => {
 
             <form onSubmit={handleSavePayment} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-bold text-navy-700 mb-1">Select Lease / Unit</label>
+                <label className="block font-bold text-ink-700 mb-1">Select Lease / Unit</label>
                 <select
                   value={selectedLeaseForPayment?.id || ''}
                   onChange={e => {
@@ -1401,7 +1399,7 @@ export const LandlordDashboardView: React.FC = () => {
                     setSelectedLeaseForPayment(l);
                     if (l) setPaymentAmount(l.monthlyRent);
                   }}
-                  className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200 font-medium"
+                  className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 font-medium"
                 >
                   {myLeases.map(l => (
                     <option key={l.id} value={l.id}>
@@ -1412,11 +1410,11 @@ export const LandlordDashboardView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-navy-700 mb-1">Payment Method</label>
+                <label className="block font-bold text-ink-700 mb-1">Payment Method</label>
                 <select
                   value={paymentMethod}
                   onChange={e => setPaymentMethod(e.target.value as any)}
-                  className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200 font-bold text-sage-800"
+                  className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 font-bold text-tea-800"
                 >
                   <option value="MTN_MOMO">MTN Mobile Money (MoMo)</option>
                   <option value="AIRTEL_MONEY">Airtel Money</option>
@@ -1428,51 +1426,51 @@ export const LandlordDashboardView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-navy-700 mb-1">Amount Paid (RWF)</label>
+                  <label className="block font-bold text-ink-700 mb-1">Amount Paid (RWF)</label>
                   <input
                     type="number"
                     step="10000"
                     required
                     value={paymentAmount}
                     onChange={e => setPaymentAmount(Number(e.target.value))}
-                    className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200 font-mono font-bold"
+                    className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 font-mono font-bold"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-navy-700 mb-1">Month Period</label>
+                  <label className="block font-bold text-ink-700 mb-1">Month Period</label>
                   <input
                     type="text"
                     required
                     value={paymentMonth}
                     onChange={e => setPaymentMonth(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200"
+                    className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-navy-700 mb-1">Notes / Transaction Reference</label>
+                <label className="block font-bold text-ink-700 mb-1">Notes / Transaction Reference</label>
                 <input
                   type="text"
                   placeholder="e.g. MoMo transaction ID 78834599"
                   value={paymentNotes}
                   onChange={e => setPaymentNotes(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200"
+                  className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200"
                 />
               </div>
 
-              <div className="pt-3 border-t border-cream-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-stone-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowPaymentModal(false)}
-                  className="px-4 py-2 rounded-xl bg-cream-100 text-navy-700 font-bold hover:bg-cream-200 transition-colors"
+                  className="px-4 py-2 rounded-xl bg-stone-100 text-ink-700 font-bold hover:bg-stone-200 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-tea-700 hover:bg-tea-600 text-white font-bold transition-colors cursor-pointer"
                 >
                   Confirm & Issue Receipt
                 </button>
@@ -1486,59 +1484,59 @@ export const LandlordDashboardView: React.FC = () => {
       {/* MODAL: OFFICIAL DIGITAL RENT RECEIPT */}
       {/* ========================================================================= */}
       {activeReceipt && (
-        <div className="fixed inset-0 z-50 bg-navy-950/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 border border-cream-200 shadow-2xl space-y-5 text-left animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[3px] flex items-center justify-center p-4">
+          <div className="animate-pop bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 border border-stone-200 space-y-5 text-left">
             {/* Printable Receipt Card */}
-            <div className="p-6 rounded-lg bg-cream-50 border border-cream-200 space-y-4 font-sans text-xs">
-              <div className="flex items-center justify-between border-b border-cream-200 pb-3">
+            <div className="p-6 rounded-lg bg-stone-50 border border-stone-200 space-y-4 font-sans text-xs">
+              <div className="flex items-center justify-between border-b border-stone-200 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-xl bg-navy-900 text-white flex items-center justify-center font-black">
+                  <div className="w-9 h-9 rounded-xl bg-tea-700 text-white flex items-center justify-center font-bold">
                     <Building2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="font-black text-sm tracking-tight text-navy-900 block">HABIFY</span>
-                    <span className="text-[10px] text-cream-600">Official Residential Rent Receipt</span>
+                    <span className="font-bold text-sm tracking-tight text-ink-900 block">HABIFY</span>
+                    <span className="text-[10px] text-stone-600">Official Residential Rent Receipt</span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="font-mono font-bold text-navy-900 block">{activeReceipt.receiptNumber}</span>
-                  <span className="text-[10px] text-sage-700 font-bold">VERIFIED PAYMENT</span>
+                  <span className="font-mono font-bold text-ink-900 block">{activeReceipt.receiptNumber}</span>
+                  <span className="text-[10px] text-tea-700 font-bold">VERIFIED PAYMENT</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-cream-700">
+              <div className="grid grid-cols-2 gap-3 text-stone-700">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-cream-500 block">Property</span>
-                  <strong className="text-navy-900 block">{activeReceipt.propertyTitle}</strong>
+                  <span className="text-[10px] uppercase font-bold text-stone-500 block">Property</span>
+                  <strong className="text-ink-900 block">{activeReceipt.propertyTitle}</strong>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-cream-500 block">Payment Date</span>
-                  <strong className="text-navy-900 block">{activeReceipt.paymentDate}</strong>
+                  <span className="text-[10px] uppercase font-bold text-stone-500 block">Payment Date</span>
+                  <strong className="text-ink-900 block">{activeReceipt.paymentDate}</strong>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-cream-500 block">Tenant Name</span>
-                  <strong className="text-navy-900 block">{activeReceipt.tenantName}</strong>
+                  <span className="text-[10px] uppercase font-bold text-stone-500 block">Tenant Name</span>
+                  <strong className="text-ink-900 block">{activeReceipt.tenantName}</strong>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-cream-500 block">Landlord / Owner</span>
-                  <strong className="text-navy-900 block">{activeReceipt.landlordName}</strong>
+                  <span className="text-[10px] uppercase font-bold text-stone-500 block">Landlord / Owner</span>
+                  <strong className="text-ink-900 block">{activeReceipt.landlordName}</strong>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-sage-50 border border-sage-200 text-center space-y-1">
-                <span className="text-[11px] font-bold text-sage-800 uppercase tracking-wider block">
+              <div className="p-4 rounded-xl bg-tea-50 border border-tea-200 text-center space-y-1">
+                <span className="text-[11px] font-bold text-tea-800 uppercase tracking-wider block">
                   Amount Received for {activeReceipt.paidForMonth}
                 </span>
-                <div className="text-2xl font-black text-sage-900 font-mono">
+                <div className="text-2xl font-bold text-tea-900 font-mono">
                   {activeReceipt.amountRwf.toLocaleString()} RWF
                 </div>
-                <span className="text-[10px] text-sage-700 block">
+                <span className="text-[10px] text-tea-700 block">
                   Via {activeReceipt.paymentMethod.replace('_', ' ')} • Ref: {activeReceipt.transactionReference}
                 </span>
               </div>
 
               {activeReceipt.notes && (
-                <div className="text-[11px] text-cream-600 italic bg-white p-2 rounded border border-cream-200">
+                <div className="text-[11px] text-stone-600 italic bg-white p-2 rounded border border-stone-200">
                   Note: {activeReceipt.notes}
                 </div>
               )}
@@ -1549,14 +1547,14 @@ export const LandlordDashboardView: React.FC = () => {
                 onClick={() => {
                   window.print();
                 }}
-                className="px-4 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl bg-tea-700 hover:bg-tea-600 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Print / Save Receipt</span>
               </button>
               <button
                 onClick={() => setActiveReceipt(null)}
-                className="px-4 py-2 rounded-xl bg-cream-100 hover:bg-cream-200 text-navy-700 font-bold text-xs transition-colors"
+                className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-ink-700 font-bold text-xs transition-colors"
               >
                 Close
               </button>
@@ -1569,21 +1567,21 @@ export const LandlordDashboardView: React.FC = () => {
       {/* MODAL: LOG MAINTENANCE REQUEST */}
       {/* ========================================================================= */}
       {showMaintenanceModal && (
-        <div className="fixed inset-0 z-50 bg-navy-950/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 border border-cream-200 shadow-2xl space-y-4 text-left animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-cream-100">
+        <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[3px] flex items-center justify-center p-4">
+          <div className="animate-pop bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 border border-stone-200 space-y-4 text-left">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
                   <Wrench className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-navy-900 text-sm">Log Maintenance Ticket</h3>
-                  <p className="text-[11px] text-cream-500">Track unit repairs and expenses</p>
+                  <h3 className="font-bold text-ink-900 text-sm">Log Maintenance Ticket</h3>
+                  <p className="text-[11px] text-stone-500">Track unit repairs and expenses</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowMaintenanceModal(false)}
-                className="p-1 text-cream-500 hover:text-navy-700 rounded-lg hover:bg-cream-100"
+                className="p-1 text-stone-500 hover:text-ink-700 rounded-lg hover:bg-stone-100"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -1591,11 +1589,11 @@ export const LandlordDashboardView: React.FC = () => {
 
             <form onSubmit={handleSaveMaintenance} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-bold text-navy-700 mb-1">Select Property Unit</label>
+                <label className="block font-bold text-ink-700 mb-1">Select Property Unit</label>
                 <select
                   value={maintPropId}
                   onChange={e => setMaintPropId(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200 font-medium"
+                  className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 font-medium"
                 >
                   {myProperties.map(p => (
                     <option key={p.id} value={p.id}>
@@ -1607,11 +1605,11 @@ export const LandlordDashboardView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-navy-700 mb-1">Category</label>
+                  <label className="block font-bold text-ink-700 mb-1">Category</label>
                   <select
                     value={maintCategory}
                     onChange={e => setMaintCategory(e.target.value as any)}
-                    className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200 font-bold"
+                    className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 font-bold"
                   >
                     <option value="PLUMBING">Plumbing</option>
                     <option value="ELECTRICAL_SOLAR">Electrical & Solar</option>
@@ -1623,11 +1621,11 @@ export const LandlordDashboardView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-navy-700 mb-1">Priority</label>
+                  <label className="block font-bold text-ink-700 mb-1">Priority</label>
                   <select
                     value={maintPriority}
                     onChange={e => setMaintPriority(e.target.value as any)}
-                    className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200 font-bold"
+                    className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 font-bold"
                   >
                     <option value="URGENT">Urgent (Immediate)</option>
                     <option value="HIGH">High Priority</option>
@@ -1638,57 +1636,57 @@ export const LandlordDashboardView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-navy-700 mb-1">Issue Title</label>
+                <label className="block font-bold text-ink-700 mb-1">Issue Title</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Booster water pump servicing"
                   value={maintTitle}
                   onChange={e => setMaintTitle(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200"
+                  className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-navy-700 mb-1">Description</label>
+                <label className="block font-bold text-ink-700 mb-1">Description</label>
                 <textarea
                   rows={2}
                   placeholder="Provide repair details or tenant notes..."
                   value={maintDesc}
                   onChange={e => setMaintDesc(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200"
+                  className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-navy-700 mb-1">Est. Cost (RWF)</label>
+                  <label className="block font-bold text-ink-700 mb-1">Est. Cost (RWF)</label>
                   <input
                     type="number"
                     step="5000"
                     value={maintEstCost}
                     onChange={e => setMaintEstCost(Number(e.target.value))}
-                    className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200 font-mono font-bold"
+                    className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 font-mono font-bold"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-navy-700 mb-1">Contractor / Contact</label>
+                  <label className="block font-bold text-ink-700 mb-1">Contractor / Contact</label>
                   <input
                     type="text"
                     placeholder="e.g. Kigali Tech (+250 788...)"
                     value={maintContractor}
                     onChange={e => setMaintContractor(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200"
+                    className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200"
                   />
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-cream-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-stone-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowMaintenanceModal(false)}
-                  className="px-4 py-2 rounded-xl bg-cream-100 text-navy-700 font-bold hover:bg-cream-200 transition-colors"
+                  className="px-4 py-2 rounded-xl bg-stone-100 text-ink-700 font-bold hover:bg-stone-200 transition-colors"
                 >
                   Cancel
                 </button>
@@ -1708,21 +1706,21 @@ export const LandlordDashboardView: React.FC = () => {
       {/* MODAL: NEW LEASE AGREEMENT */}
       {/* ========================================================================= */}
       {showNewLeaseModal && (
-        <div className="fixed inset-0 z-50 bg-navy-950/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 border border-cream-200 shadow-2xl space-y-4 text-left animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-cream-100">
+        <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[3px] flex items-center justify-center p-4">
+          <div className="animate-pop bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 border border-stone-200 space-y-4 text-left">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-sage-100 text-sage-700 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-tea-100 text-tea-700 flex items-center justify-center font-bold">
                   <FileText className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-navy-900 text-sm">Create Lease Agreement</h3>
-                  <p className="text-[11px] text-cream-500">Register new tenant and lease terms</p>
+                  <h3 className="font-bold text-ink-900 text-sm">Create Lease Agreement</h3>
+                  <p className="text-[11px] text-stone-500">Register new tenant and lease terms</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowNewLeaseModal(false)}
-                className="p-1 text-cream-500 hover:text-navy-700 rounded-lg hover:bg-cream-100"
+                className="p-1 text-stone-500 hover:text-ink-700 rounded-lg hover:bg-stone-100"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -1730,7 +1728,7 @@ export const LandlordDashboardView: React.FC = () => {
 
             <form onSubmit={handleSaveNewLease} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-bold text-navy-700 mb-1">Select Property Unit</label>
+                <label className="block font-bold text-ink-700 mb-1">Select Property Unit</label>
                 <select
                   value={newLeasePropId}
                   onChange={e => {
@@ -1738,7 +1736,7 @@ export const LandlordDashboardView: React.FC = () => {
                     const p = myProperties.find(item => item.id === e.target.value);
                     if (p) setNewLeaseRent(p.monthlyRent);
                   }}
-                  className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200 font-medium"
+                  className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 font-medium"
                 >
                   {myProperties.map(p => (
                     <option key={p.id} value={p.id}>
@@ -1749,77 +1747,77 @@ export const LandlordDashboardView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-navy-700 mb-1">Tenant Full Name</label>
+                <label className="block font-bold text-ink-700 mb-1">Tenant Full Name</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Claire Mukamana"
                   value={newLeaseTenantName}
                   onChange={e => setNewLeaseTenantName(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200 font-bold"
+                  className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 font-bold"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-navy-700 mb-1">Tenant Phone</label>
+                  <label className="block font-bold text-ink-700 mb-1">Tenant Phone</label>
                   <input
                     type="text"
                     required
                     value={newLeaseTenantPhone}
                     onChange={e => setNewLeaseTenantPhone(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200 font-mono"
+                    className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-navy-700 mb-1">Monthly Rent (RWF)</label>
+                  <label className="block font-bold text-ink-700 mb-1">Monthly Rent (RWF)</label>
                   <input
                     type="number"
                     step="10000"
                     required
                     value={newLeaseRent}
                     onChange={e => setNewLeaseRent(Number(e.target.value))}
-                    className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200 font-mono font-bold"
+                    className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 font-mono font-bold"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-navy-700 mb-1">Start Date</label>
+                  <label className="block font-bold text-ink-700 mb-1">Start Date</label>
                   <input
                     type="date"
                     required
                     value={newLeaseStart}
                     onChange={e => setNewLeaseStart(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200"
+                    className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-navy-700 mb-1">End Date</label>
+                  <label className="block font-bold text-ink-700 mb-1">End Date</label>
                   <input
                     type="date"
                     required
                     value={newLeaseEnd}
                     onChange={e => setNewLeaseEnd(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-cream-50 border border-cream-200"
+                    className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200"
                   />
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-cream-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-stone-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowNewLeaseModal(false)}
-                  className="px-4 py-2 rounded-xl bg-cream-100 text-navy-700 font-bold hover:bg-cream-200 transition-colors"
+                  className="px-4 py-2 rounded-xl bg-stone-100 text-ink-700 font-bold hover:bg-stone-200 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-tea-700 hover:bg-tea-600 text-white font-bold transition-colors cursor-pointer"
                 >
                   Create & Activate Lease
                 </button>

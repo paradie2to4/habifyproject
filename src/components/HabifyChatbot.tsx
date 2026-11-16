@@ -124,30 +124,30 @@ export const HabifyChatbot: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-5 right-5 z-[60] flex flex-col items-end gap-3">
+    <div className="chat-fab fixed bottom-5 right-5 z-[60] flex flex-col items-end gap-3">
       {open && (
-        <div className="w-[min(100vw-1.5rem,22rem)] bg-cream-50 border border-cream-200 rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[min(70vh,28rem)]">
-          <div className="bg-navy-900 text-white px-4 py-3 flex items-center justify-between">
+        <div className="w-[min(100vw-1.5rem,22rem)] bg-stone-50 border border-stone-200 rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[min(70vh,28rem)]">
+          <div className="palette-light bg-tea-700 text-white px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-terra-600/25 border border-terra-500/40 flex items-center justify-center text-terra-300 shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-tea-700/25 border border-tea-500/40 flex items-center justify-center text-saffron-300 shrink-0">
                 <Sparkles className="w-4 h-4" />
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold truncate">Habify Assist</p>
-                <p className="text-[11px] text-cream-400 truncate">{greeting} · basic FAQ help</p>
+                <p className="text-[11px] text-stone-400 truncate">{greeting} · basic FAQ help</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="p-1.5 rounded-lg text-cream-400 hover:text-white hover:bg-navy-800"
+              className="p-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-tea-600"
               aria-label="Close chat"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-cream-50">
+          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-stone-50">
             {messages.map(m => (
               <div
                 key={m.id}
@@ -156,8 +156,8 @@ export const HabifyChatbot: React.FC = () => {
                 <div
                   className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
                     m.role === 'user'
-                      ? 'bg-navy-900 text-white'
-                      : 'bg-white border border-cream-200 text-navy-900'
+                      ? 'bg-tea-700 text-white'
+                      : 'bg-white border border-stone-200 text-ink-900'
                   }`}
                 >
                   {m.text}
@@ -167,13 +167,13 @@ export const HabifyChatbot: React.FC = () => {
             <div ref={bottomRef} />
           </div>
 
-          <div className="px-3 pb-2 flex flex-wrap gap-1.5 border-t border-cream-200 bg-white pt-2">
+          <div className="px-3 pb-2 flex flex-wrap gap-1.5 border-t border-stone-200 bg-white pt-2">
             {QUICK_PROMPTS.map(prompt => (
               <button
                 key={prompt}
                 type="button"
                 onClick={() => send(prompt)}
-                className="px-2 py-1 rounded-md text-[10px] font-semibold bg-cream-100 text-navy-800 hover:bg-cream-200 border border-cream-200"
+                className="px-2 py-1 rounded-md text-[10px] font-semibold bg-stone-100 text-ink-800 hover:bg-stone-200 border border-stone-200"
               >
                 {prompt}
               </button>
@@ -181,7 +181,7 @@ export const HabifyChatbot: React.FC = () => {
           </div>
 
           <form
-            className="p-3 bg-white border-t border-cream-200 flex items-center gap-2"
+            className="p-3 bg-white border-t border-stone-200 flex items-center gap-2"
             onSubmit={e => {
               e.preventDefault();
               send(input);
@@ -209,7 +209,7 @@ export const HabifyChatbot: React.FC = () => {
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold shadow-lg"
+        className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-tea-700 hover:bg-tea-600 text-white text-sm font-semibold shadow-lg"
         aria-expanded={open}
         aria-label={open ? 'Close Habify Assist' : 'Open Habify Assist'}
       >

@@ -7,65 +7,7 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      colors: {
-        // Primary color: Deep navy
-        navy: {
-          50: '#f5f7fb',
-          100: '#e8eef8',
-          200: '#d4dff1',
-          300: '#b3c7e8',
-          400: '#8daadd',
-          500: '#6b8dd0',
-          600: '#5574c1',
-          700: '#3d57a6',
-          800: '#2d4182',
-          900: '#1a2942',
-          950: '#0f1a28',
-        },
-        // Secondary: Warm off-white/ivory
-        cream: {
-          50: '#fefdfb',
-          100: '#faf8f5',
-          200: '#f5f1ea',
-          300: '#ede7dd',
-          400: '#e0d5c7',
-          500: '#d3c4b0',
-          600: '#bfad99',
-          700: '#a89680',
-          800: '#8d7967',
-          900: '#6d5f52',
-        },
-        // Accent: Warm terracotta
-        terra: {
-          50: '#fef6f1',
-          100: '#fdebe0',
-          200: '#fad6c4',
-          300: '#f5b89f',
-          400: '#ed957f',
-          500: '#e27a63',
-          600: '#d46251',
-          700: '#b84a3e',
-          800: '#963d35',
-          900: '#7a342d',
-        },
-        // Supporting: Muted green for positive states
-        sage: {
-          50: '#f7faf6',
-          100: '#eef3eb',
-          200: '#dce5d6',
-          300: '#c4d5bc',
-          400: '#a8c59d',
-          500: '#8fb080',
-          600: '#739966',
-          700: '#5d7d53',
-          800: '#4a6542',
-          900: '#3a5033',
-        },
-      },
-      fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        display: ['Fraunces', 'ui-serif', 'Georgia', 'serif'],
-      },
+      // Colors and fonts live in src/index.css (@theme) as CSS variables
       fontSize: {
         'xs': ['0.75rem', { lineHeight: '1rem' }],
         'sm': ['0.875rem', { lineHeight: '1.25rem' }],

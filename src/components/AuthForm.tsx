@@ -155,35 +155,35 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                 <button
                   type="button"
                   onClick={() => setRole('TENANT')}
-                  className={`p-4 rounded-lg text-left border transition-colors ${
+                  className={`p-4 rounded-xl text-left border transition-colors ${
                     role === 'TENANT'
-                      ? 'border-navy-900 bg-navy-50'
-                      : 'border-cream-200 bg-white hover:border-cream-400'
+                      ? 'border-tea-700 bg-tea-50'
+                      : 'border-stone-200 bg-white hover:border-stone-400'
                   }`}
                 >
-                  <UserIcon className={`w-4 h-4 mb-2 ${role === 'TENANT' ? 'text-navy-900' : 'text-cream-500'}`} />
-                  <div className="text-sm font-semibold text-navy-900">Find a home</div>
-                  <div className="text-xs text-cream-600 mt-0.5">Tenant</div>
+                  <UserIcon className={`w-4 h-4 mb-2 ${role === 'TENANT' ? 'text-ink-900' : 'text-stone-500'}`} />
+                  <div className="text-sm font-semibold text-ink-900">Find a home</div>
+                  <div className="text-xs text-stone-600 mt-0.5">Tenant</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => setRole('LANDLORD')}
-                  className={`p-4 rounded-lg text-left border transition-colors ${
+                  className={`p-4 rounded-xl text-left border transition-colors ${
                     role === 'LANDLORD'
-                      ? 'border-terra-600 bg-terra-50'
-                      : 'border-cream-200 bg-white hover:border-cream-400'
+                      ? 'border-tea-700 bg-tea-50'
+                      : 'border-stone-200 bg-white hover:border-stone-400'
                   }`}
                 >
-                  <Building className={`w-4 h-4 mb-2 ${role === 'LANDLORD' ? 'text-terra-700' : 'text-cream-500'}`} />
-                  <div className="text-sm font-semibold text-navy-900">List a property</div>
-                  <div className="text-xs text-cream-600 mt-0.5">{ownerRoleLabel()}</div>
+                  <Building className={`w-4 h-4 mb-2 ${role === 'LANDLORD' ? 'text-tea-700' : 'text-stone-500'}`} />
+                  <div className="text-sm font-semibold text-ink-900">List a property</div>
+                  <div className="text-xs text-stone-600 mt-0.5">{ownerRoleLabel()}</div>
                 </button>
               </div>
             </div>
 
             <div>
               <label htmlFor={`${idPrefix}-phone`} className="text-label block mb-2">
-                Phone <span className="font-normal text-cream-500 normal-case tracking-normal">(optional)</span>
+                Phone <span className="font-normal text-stone-500 normal-case tracking-normal">(optional)</span>
               </label>
               <input
                 id={`${idPrefix}-phone`}
@@ -231,19 +231,19 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         </div>
 
         {mode === 'LOGIN' && (
-          <label className="flex items-center gap-2 text-sm text-navy-800 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-ink-800 cursor-pointer">
             <input
               type="checkbox"
               checked={rememberMe}
               onChange={e => setRememberMe(e.target.checked)}
-              className="rounded border-cream-400 text-navy-900 focus:ring-navy-900"
+              className="rounded border-stone-400 text-ink-900 focus:ring-tea-600"
             />
             Keep me signed in
           </label>
         )}
 
         {error && (
-          <p className="text-sm text-terra-700 bg-terra-50 border border-terra-200 rounded-lg px-3 py-2" role="alert">
+          <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5" role="alert">
             {error}
           </p>
         )}
@@ -251,7 +251,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         <button
           type="submit"
           disabled={submitting}
-          className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
+          className="btn-primary w-full h-12 text-[15px] disabled:opacity-60"
         >
           {mode === 'LOGIN' ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
           <span>
@@ -264,18 +264,18 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         </button>
 
         {onSwitchMode && (
-          <p className="text-sm text-center text-cream-600">
+          <p className="text-sm text-center text-stone-600">
             {mode === 'LOGIN' ? (
               <>
                 New to Habify?{' '}
-                <button type="button" onClick={() => onSwitchMode('REGISTER')} className="font-semibold text-navy-900">
+                <button type="button" onClick={() => onSwitchMode('REGISTER')} className="font-semibold text-tea-700 hover:underline underline-offset-2">
                   Create an account
                 </button>
               </>
             ) : (
               <>
                 Already have an account?{' '}
-                <button type="button" onClick={() => onSwitchMode('LOGIN')} className="font-semibold text-navy-900">
+                <button type="button" onClick={() => onSwitchMode('LOGIN')} className="font-semibold text-tea-700 hover:underline underline-offset-2">
                   Sign in
                 </button>
               </>
@@ -292,24 +292,29 @@ interface AuthBrandPanelProps {
 }
 
 export const AuthBrandPanel: React.FC<AuthBrandPanelProps> = ({ className = '' }) => (
-  <div className={`relative flex min-h-[320px] flex-col justify-between p-8 text-white overflow-hidden ${className}`}>
-    <img
-      src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&auto=format&fit=crop&q=80"
-      alt="A warm, sunlit home interior"
-      className="absolute inset-0 w-full h-full object-cover"
-    />
-    <div className="absolute inset-0 bg-navy-950/70" />
-    <div className="relative z-10">
-      <HabifyLogo size="md" theme="dark" />
-    </div>
-    <div className="relative z-10 space-y-3">
-      <p className="font-display text-3xl sm:text-4xl font-semibold leading-tight text-white">
-        Find Where You <span className="text-terra-300">Belong</span>
-        <span className="text-terra-400">.</span>
+  <div className={`palette-light relative flex min-h-[320px] flex-col justify-between p-10 bg-tea-700 topo text-white overflow-hidden ${className}`}>
+    <HabifyLogo size="md" theme="dark" />
+
+    <div className="relative">
+      <p className="font-display text-4xl xl:text-5xl font-bold leading-[1.05] tracking-tight text-white">
+        A home that fits <span className="text-saffron-300">your life</span>, not just your search.
       </p>
-      <p className="text-sm text-cream-200 leading-relaxed max-w-sm">
-        Homes across Rwanda, matched to how you actually live.
-      </p>
+      <ul className="mt-8 space-y-3 text-[15px] text-tea-50">
+        {[
+          'Every home scored against your budget and must-haves',
+          'Know what you can afford before you visit',
+          'Book viewings and message landlords in one place'
+        ].map(item => (
+          <li key={item} className="flex items-start gap-3">
+            <span className="mt-1 w-5 h-5 shrink-0 rounded-full bg-white/15 inline-flex items-center justify-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-saffron-300" />
+            </span>
+            {item}
+          </li>
+        ))}
+      </ul>
     </div>
+
+    <p className="text-xs text-tea-100/80">Kigali · Musanze · Rubavu · Huye and beyond</p>
   </div>
 );

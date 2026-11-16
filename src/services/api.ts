@@ -564,6 +564,11 @@ export async function fetchAllUsersApi(): Promise<User[]> {
   return ((await request<BackendUser[]>('/admin/users')) || []).map(mapBackendUser);
 }
 
+/** Single listing (also bumps its view counter on the server). */
+export async function fetchPropertyApi(id: string): Promise<Property> {
+  return mapBackendProperty(await request<BackendProperty>(`/properties/${encodeURIComponent(id)}`));
+}
+
 /** Landlords also see their own unavailable listings. */
 export async function fetchLandlordPropertiesApi(landlordId: string): Promise<Property[]> {
   return ((await request<BackendProperty[]>(`/properties/landlord/${landlordId}`)) || []).map(mapBackendProperty);

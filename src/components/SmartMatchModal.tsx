@@ -43,34 +43,30 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({
 
   const getCriterionIcon = (criterion: string) => {
     switch (criterion) {
-      case 'BUDGET': return <DollarSign className="w-4 h-4 text-terra-600" />;
-      case 'LOCATION': return <MapPin className="w-4 h-4 text-terra-600" />;
-      case 'BEDROOMS': return <Bed className="w-4 h-4 text-navy-700" />;
-      case 'PROPERTY_TYPE': return <Home className="w-4 h-4 text-navy-700" />;
-      case 'AMENITIES': return <Wifi className="w-4 h-4 text-navy-700" />;
-      case 'FURNISHED': return <Armchair className="w-4 h-4 text-navy-700" />;
-      case 'PARKING': return <Car className="w-4 h-4 text-navy-700" />;
-      default: return <Sparkles className="w-4 h-4 text-terra-600" />;
+      case 'BUDGET': return <DollarSign className="w-4 h-4 text-tea-600" />;
+      case 'LOCATION': return <MapPin className="w-4 h-4 text-tea-600" />;
+      case 'BEDROOMS': return <Bed className="w-4 h-4 text-ink-700" />;
+      case 'PROPERTY_TYPE': return <Home className="w-4 h-4 text-ink-700" />;
+      case 'AMENITIES': return <Wifi className="w-4 h-4 text-ink-700" />;
+      case 'FURNISHED': return <Armchair className="w-4 h-4 text-ink-700" />;
+      case 'PARKING': return <Car className="w-4 h-4 text-ink-700" />;
+      default: return <Sparkles className="w-4 h-4 text-tea-600" />;
     }
   };
 
   const score = explanation.totalScore;
-  let ringColor = 'text-cream-400';
+  let ringColor = 'text-stone-400';
   let badgeLabel = 'Low Compatibility';
-  let headerBg = 'from-navy-900 to-navy-800';
 
   if (score >= 85) {
-    ringColor = 'text-sage-600';
+    ringColor = 'text-tea-600';
     badgeLabel = 'Exceptional Match';
-    headerBg = 'from-navy-900 via-navy-800 to-navy-700';
   } else if (score >= 70) {
-    ringColor = 'text-terra-500';
+    ringColor = 'text-tea-500';
     badgeLabel = 'Strong Match';
-    headerBg = 'from-navy-900 via-navy-800 to-navy-700';
   } else if (score >= 50) {
-    ringColor = 'text-terra-400';
+    ringColor = 'text-saffron-400';
     badgeLabel = 'Moderate Match';
-    headerBg = 'from-navy-900 to-navy-800';
   }
 
   const handleBookingClick = () => {
@@ -97,16 +93,16 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55 backdrop-blur-[3px] overflow-y-auto">
       <div
-        className="bg-white rounded-xl max-w-2xl w-full shadow-xl border border-cream-200 overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200"
+        className="animate-pop bg-white rounded-3xl max-w-2xl w-full w-full border border-stone-200 overflow-hidden my-8"
         onClick={e => e.stopPropagation()}
       >
         {/* Modal Header with Gradient Banner */}
-        <div className={`p-6 sm:p-8 bg-gradient-to-r ${headerBg} text-white relative`}>
+        <div className={`palette-light topo p-6 sm:p-8 bg-tea-700 text-white relative`}>
           <button
             onClick={closeModal}
-            className="absolute top-4 right-4 p-2 text-cream-400 hover:text-white rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+            className="absolute top-4 right-4 p-2 text-stone-400 hover:text-white rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -134,24 +130,24 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-3xl font-black tracking-tight">{score}%</span>
-                <span className="text-[10px] uppercase font-bold text-cream-200">Match</span>
+                <span className="text-3xl font-bold tracking-tight">{score}%</span>
+                <span className="text-[10px] uppercase font-bold text-stone-200">Match</span>
               </div>
             </div>
 
             {/* Header Content */}
             <div className="text-center sm:text-left flex-1">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider bg-white/15 text-white backdrop-blur mb-2">
-                <Sparkles className="w-3.5 h-3.5 text-terra-300" />
+                <Sparkles className="w-3.5 h-3.5 text-saffron-300" />
                 {badgeLabel}
               </div>
               <h2 className="text-xl sm:text-2xl font-bold leading-tight line-clamp-1">
                 {property.title}
               </h2>
-              <p className="text-xs sm:text-sm text-cream-300 mt-1 flex items-center justify-center sm:justify-start gap-2">
+              <p className="text-xs sm:text-sm text-stone-300 mt-1 flex items-center justify-center sm:justify-start gap-2">
                 <span>{property.locationSector}</span>
                 <span>•</span>
-                <span className="font-semibold text-terra-300">
+                <span className="font-semibold text-saffron-300">
                   {property.monthlyRent.toLocaleString()} RWF/mo
                 </span>
               </p>
@@ -164,19 +160,19 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({
           
           {/* Section: Why this property matches you */}
           <div>
-            <h3 className="text-sm font-bold text-navy-900 uppercase tracking-wider flex items-center gap-2 mb-3">
-              <CheckCircle2 className="w-4 h-4 text-sage-600" />
+            <h3 className="text-sm font-bold text-ink-900 uppercase tracking-wider flex items-center gap-2 mb-3">
+              <CheckCircle2 className="w-4 h-4 text-tea-600" />
               Why this property matches:
             </h3>
-            <div className="bg-sage-50/70 border border-sage-200/80 rounded-lg p-4 space-y-2">
+            <div className="bg-tea-50/70 border border-tea-200/80 rounded-lg p-4 space-y-2">
               {explanation.matchedReasons.map((reason, idx) => (
-                <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-sage-900 font-medium">
-                  <span className="text-sage-600 font-bold text-base leading-none">✓</span>
+                <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-tea-900 font-medium">
+                  <span className="text-tea-600 font-bold text-base leading-none">✓</span>
                   <span>{reason}</span>
                 </div>
               ))}
               {explanation.matchedReasons.length === 0 && (
-                <p className="text-xs text-cream-600 italic">No strong matches yet.</p>
+                <p className="text-xs text-stone-600 italic">No strong matches yet.</p>
               )}
             </div>
           </div>
@@ -184,14 +180,14 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({
           {/* Section: What could be better */}
           {explanation.improvementSuggestions.length > 0 && (
             <div>
-              <h3 className="text-sm font-bold text-navy-900 uppercase tracking-wider flex items-center gap-2 mb-3">
-                <AlertCircle className="w-4 h-4 text-terra-600" />
+              <h3 className="text-sm font-bold text-ink-900 uppercase tracking-wider flex items-center gap-2 mb-3">
+                <AlertCircle className="w-4 h-4 text-tea-600" />
                 What could be better:
               </h3>
-              <div className="bg-terra-50/70 border border-terra-200/80 rounded-lg p-4 space-y-2">
+              <div className="bg-saffron-50/70 border border-saffron-200/80 rounded-lg p-4 space-y-2">
                 {explanation.improvementSuggestions.map((suggestion, idx) => (
-                  <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-terra-900 font-medium">
-                    <span className="text-terra-600 font-bold text-base leading-none">•</span>
+                  <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-saffron-900 font-medium">
+                    <span className="text-tea-600 font-bold text-base leading-none">•</span>
                     <span>{suggestion}</span>
                   </div>
                 ))}
@@ -202,46 +198,46 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({
           {/* Section: 7 Weighted Criteria Mathematical Breakdown */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-navy-900 uppercase tracking-wider flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-terra-600" />
+              <h3 className="text-sm font-bold text-ink-900 uppercase tracking-wider flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-tea-600" />
                 Scoring Breakdown
               </h3>
-              <span className="text-xs text-cream-600 font-mono">100%</span>
+              <span className="text-xs text-stone-600 font-mono">100%</span>
             </div>
 
             <div className="space-y-3">
               {explanation.criteriaBreakdown.map((item, idx) => {
-                let barBg = 'bg-cream-300';
-                if (item.status === 'MATCH') barBg = 'bg-sage-500';
-                else if (item.status === 'PARTIAL') barBg = 'bg-terra-500';
-                else barBg = 'bg-terra-300';
+                let barBg = 'bg-stone-300';
+                if (item.status === 'MATCH') barBg = 'bg-tea-500';
+                else if (item.status === 'PARTIAL') barBg = 'bg-tea-600';
+                else barBg = 'bg-tea-400';
 
                 return (
-                  <div key={idx} className="bg-cream-50 border border-cream-200 rounded-lg p-3">
-                    <div className="flex items-center justify-between text-xs font-semibold text-navy-800 mb-1">
+                  <div key={idx} className="bg-stone-50 border border-stone-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between text-xs font-semibold text-ink-800 mb-1">
                       <div className="flex items-center gap-2">
                         {getCriterionIcon(item.criterion)}
                         <span>{item.label}</span>
-                        <span className="text-[10px] text-cream-600 font-normal">({item.weightPercentage}%)</span>
+                        <span className="text-[10px] text-stone-600 font-normal">({item.weightPercentage}%)</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-navy-900 font-bold">
+                        <span className="font-mono text-ink-900 font-bold">
                           {item.weightedScore} / {item.weightPercentage}
                         </span>
                       </div>
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="w-full bg-cream-200 h-2 rounded-full overflow-hidden my-1.5">
+                    <div className="w-full bg-stone-200 h-2 rounded-full overflow-hidden my-1.5">
                       <div
                         className={`h-full ${barBg} rounded-full transition-all duration-500`}
                         style={{ width: `${item.score}%` }}
                       />
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-cream-700">
+                    <div className="flex items-center justify-between text-[11px] text-stone-700">
                       <span>{item.detail}</span>
-                      <span className="font-medium uppercase text-[10px] px-1.5 py-0.5 rounded bg-white border border-cream-200">
+                      <span className="font-medium uppercase text-[10px] px-1.5 py-0.5 rounded bg-white border border-stone-200">
                         {item.status}
                       </span>
                     </div>
@@ -252,39 +248,39 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({
           </div>
 
           {/* Section: Affordability Sanity Check */}
-          <div className="bg-navy-900 text-white rounded-lg p-5 border border-navy-800 space-y-3">
+          <div className="palette-light bg-tea-700 text-white rounded-lg p-5 border border-tea-600 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-sage-400" />
+                <ShieldCheck className="w-5 h-5 text-tea-400" />
                 <h4 className="font-bold text-sm">Rent Affordability</h4>
               </div>
               <span className={`text-xs font-bold px-2.5 py-0.5 rounded-lg ${
                 affordability.status === 'SAFE'
-                  ? 'bg-sage-600 text-white'
+                  ? 'bg-tea-600 text-white'
                   : affordability.status === 'MODERATE'
-                  ? 'bg-terra-500 text-white'
-                  : 'bg-terra-400 text-navy-900'
+                  ? 'bg-tea-600 text-white'
+                  : 'bg-tea-500 text-ink-900'
               }`}>
                 {affordability.status}
               </span>
             </div>
 
-            <p className="text-xs text-cream-300 leading-relaxed">
+            <p className="text-xs text-stone-300 leading-relaxed">
               {affordability.adviceMessage}
             </p>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 border-t border-navy-800 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 border-t border-tea-600 text-xs">
               <div>
-                <span className="text-cream-400 block text-[10px]">Rent/Income Ratio</span>
+                <span className="text-stone-400 block text-[10px]">Rent/Income Ratio</span>
                 <strong className="text-white font-mono text-sm">{affordability.rentToIncomeRatioPercentage}%</strong>
               </div>
               <div>
-                <span className="text-cream-400 block text-[10px]">Your Monthly Income</span>
+                <span className="text-stone-400 block text-[10px]">Your Monthly Income</span>
                 <strong className="text-white font-mono text-sm">{preferences.monthlyIncome.toLocaleString()} RWF</strong>
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <span className="text-cream-400 block text-[10px]">Max Safe Rent (30%)</span>
-                <strong className="text-sage-400 font-mono text-sm">{affordability.maxRecommendedRent.toLocaleString()} RWF</strong>
+                <span className="text-stone-400 block text-[10px]">Max Safe Rent (30%)</span>
+                <strong className="text-tea-400 font-mono text-sm">{affordability.maxRecommendedRent.toLocaleString()} RWF</strong>
               </div>
             </div>
           </div>
@@ -292,27 +288,27 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({
         </div>
 
         {/* Modal Footer Actions */}
-        <div className="p-4 sm:p-6 bg-cream-50 border-t border-cream-200 flex flex-wrap items-center justify-between gap-3">
+        <div className="p-4 sm:p-6 bg-stone-50 border-t border-stone-200 flex flex-wrap items-center justify-between gap-3">
           <button
             onClick={handleAdjustPreferences}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-navy-900 bg-white border border-cream-300 hover:bg-cream-100 transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-ink-900 bg-white border border-stone-300 hover:bg-stone-100 transition-colors"
           >
-            <Sliders className="w-3.5 h-3.5 text-terra-600" />
+            <Sliders className="w-3.5 h-3.5 text-tea-600" />
             <span>Adjust Criteria</span>
           </button>
 
           <div className="flex items-center gap-2">
             <button
               onClick={handleInquiryClick}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-semibold text-navy-900 bg-white border border-cream-300 hover:bg-cream-100 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-semibold text-ink-900 bg-white border border-stone-300 hover:bg-stone-100 transition-colors"
             >
-              <MessageSquare className="w-4 h-4 text-terra-600" />
+              <MessageSquare className="w-4 h-4 text-tea-600" />
               <span>Ask Question</span>
             </button>
 
             <button
               onClick={handleBookingClick}
-              className="flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-terra-600 hover:bg-terra-700 transition-all"
+              className="flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-tea-700 hover:bg-tea-800 transition-all"
             >
               <Calendar className="w-4 h-4" />
               <span>Book Viewing</span>

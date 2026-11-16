@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { SEED_USERS } from '../data/seedData';
 import { KigaliAdminMap } from '../components/KigaliAdminMap';
 import { EmptyState } from '../components/EmptyState';
+import { DashboardHero, todayLabel } from '../components/DashboardHero';
 import { roleDisplayName } from '../utils/roles';
 import {
   Users,
@@ -10,7 +11,9 @@ import {
   CheckCircle2,
   Trash2,
   MapPin,
-  Search
+  Search,
+  Building2,
+  Gauge
 } from 'lucide-react';
 
 export const AdminDashboardView: React.FC = () => {
@@ -66,34 +69,26 @@ export const AdminDashboardView: React.FC = () => {
 
   return (
     <div id="admin-dashboard-container" className="space-y-8 text-left">
-      <header>
-        <p className="text-sm text-cream-600">Administration</p>
-        <h1 className="font-display text-3xl font-semibold text-navy-900 mt-1">Platform overview</h1>
-        <p className="text-sm text-cream-700 mt-2 max-w-xl">
-          Listings, reports, and accounts across the whole system.
-        </p>
-      </header>
+      <DashboardHero
+        eyebrow={`Administration · ${todayLabel()}`}
+        title="Platform overview"
+        subtitle="Listings, reports and accounts across the whole system."
+        stats={[
+          { label: 'Listings', value: properties.length, hint: `${properties.filter(p => p.isAvailable).length} available`, icon: Building2, onClick: () => setActiveAdminSubTab('MAP') },
+          {
+            label: 'Open reports',
+            value: activeReports.length,
+            hint: activeReports.length ? 'Need moderation' : 'Queue is clear',
+            icon: Flag,
+            attention: activeReports.length > 0,
+            onClick: () => setActiveAdminSubTab('MODERATION')
+          },
+          { label: 'Accounts', value: directory.length, hint: `${directory.filter(u => u.role === 'LANDLORD').length} landlords`, icon: Users, onClick: () => setActiveAdminSubTab('USERS') },
+          { label: 'Avg. listing quality', value: `${avgQuality}%`, hint: 'Across all listings', icon: Gauge }
+        ]}
+      />
 
-      <dl className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-6 border-y border-cream-200 py-6">
-        <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-cream-600">Listings</dt>
-          <dd className="mt-1 font-display text-2xl text-navy-900">{properties.length}</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-cream-600">Open reports</dt>
-          <dd className="mt-1 font-display text-2xl text-navy-900">{activeReports.length}</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-cream-600">Accounts</dt>
-          <dd className="mt-1 font-display text-2xl text-navy-900">{directory.length}</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-cream-600">Avg. listing quality</dt>
-          <dd className="mt-1 font-display text-2xl text-navy-900">{avgQuality}%</dd>
-        </div>
-      </dl>
-
-      <div className="flex items-center gap-1 border-b border-cream-200">
+      <div className="flex items-center gap-1 border-b border-stone-200">
         {tabs.map(tab => {
           const Icon = tab.icon;
           const active = activeAdminSubTab === tab.id;
@@ -104,14 +99,14 @@ export const AdminDashboardView: React.FC = () => {
               onClick={() => setActiveAdminSubTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
                 active
-                  ? 'border-navy-900 text-navy-900'
-                  : 'border-transparent text-cream-600 hover:text-navy-900'
+                  ? 'border-tea-700 text-ink-900'
+                  : 'border-transparent text-stone-600 hover:text-ink-900'
               }`}
             >
               <Icon className="w-4 h-4" />
               {tab.label}
               {tab.count ? (
-                <span className="text-xs text-terra-700">{tab.count}</span>
+                <span className="text-xs text-tea-700">{tab.count}</span>
               ) : null}
             </button>
           );
@@ -124,13 +119,13 @@ export const AdminDashboardView: React.FC = () => {
         <div className="space-y-4">
           <div>
             <h2 className="text-section">Moderation queue</h2>
-            <p className="text-sm text-cream-600 mt-1">Review reports before removing a listing.</p>
+            <p className="text-sm text-stone-600 mt-1">Review reports before removing a listing.</p>
           </div>
 
           {activeReports.length > 0 ? (
-            <div className="overflow-x-auto border border-cream-200 rounded-xl bg-white">
+            <div className="overflow-x-auto border border-stone-200 rounded-xl bg-white">
               <table className="w-full text-sm text-left">
-                <thead className="text-xs uppercase tracking-wide text-cream-600 border-b border-cream-200">
+                <thead className="text-xs uppercase tracking-wide text-stone-600 border-b border-stone-200">
                   <tr>
                     <th className="px-4 py-3 font-medium">Listing</th>
                     <th className="px-4 py-3 font-medium">Reason</th>
@@ -139,16 +134,16 @@ export const AdminDashboardView: React.FC = () => {
                     <th className="px-4 py-3 font-medium text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-cream-100">
+                <tbody className="divide-y divide-stone-100">
                   {activeReports.map(rep => (
                     <tr key={rep.id} className="align-top">
                       <td className="px-4 py-3">
-                        <div className="font-semibold text-navy-900">{rep.propertyTitle}</div>
-                        <p className="text-xs text-cream-600 mt-0.5 max-w-xs">{rep.details}</p>
+                        <div className="font-semibold text-ink-900">{rep.propertyTitle}</div>
+                        <p className="text-xs text-stone-600 mt-0.5 max-w-xs">{rep.details}</p>
                       </td>
-                      <td className="px-4 py-3 text-cream-700">{rep.reason.replace(/_/g, ' ').toLowerCase()}</td>
+                      <td className="px-4 py-3 text-stone-700">{rep.reason.replace(/_/g, ' ').toLowerCase()}</td>
                       <td className="px-4 py-3">{rep.reporterName}</td>
-                      <td className="px-4 py-3 text-cream-600">{new Date(rep.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-stone-600">{new Date(rep.createdAt).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-2">
                           <button
@@ -167,7 +162,7 @@ export const AdminDashboardView: React.FC = () => {
                                 title: rep.propertyTitle
                               })
                             }
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-terra-800 bg-terra-50 hover:bg-terra-100"
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-saffron-800 bg-saffron-50 hover:bg-saffron-100"
                           >
                             Remove listing
                           </button>
@@ -180,7 +175,7 @@ export const AdminDashboardView: React.FC = () => {
             </div>
           ) : (
             <EmptyState
-              icon={<CheckCircle2 className="w-5 h-5 text-sage-700" />}
+              icon={<CheckCircle2 className="w-5 h-5 text-tea-700" />}
               title="Nothing to review."
               description="There are no open reports right now."
             />
@@ -193,10 +188,10 @@ export const AdminDashboardView: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
             <div>
               <h2 className="text-section">User registry</h2>
-              <p className="text-sm text-cream-600 mt-1">Accounts and roles on the platform.</p>
+              <p className="text-sm text-stone-600 mt-1">Accounts and roles on the platform.</p>
             </div>
             <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-cream-500" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" />
               <input
                 type="search"
                 value={userQuery}
@@ -208,9 +203,9 @@ export const AdminDashboardView: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto border border-cream-200 rounded-xl bg-white">
+          <div className="overflow-x-auto border border-stone-200 rounded-xl bg-white">
             <table className="w-full text-sm text-left">
-              <thead className="text-xs uppercase tracking-wide text-cream-600 border-b border-cream-200">
+              <thead className="text-xs uppercase tracking-wide text-stone-600 border-b border-stone-200">
                 <tr>
                   <th className="px-4 py-3 font-medium">User</th>
                   <th className="px-4 py-3 font-medium">Role</th>
@@ -219,7 +214,7 @@ export const AdminDashboardView: React.FC = () => {
                   <th className="px-4 py-3 font-medium">Joined</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-cream-100">
+              <tbody className="divide-y divide-stone-100">
                 {filteredUsers.map(u => (
                   <tr key={u.id}>
                     <td className="px-4 py-3">
@@ -230,20 +225,20 @@ export const AdminDashboardView: React.FC = () => {
                           className="w-8 h-8 rounded-lg object-cover"
                         />
                         <div>
-                          <div className="font-semibold text-navy-900">{u.fullName}</div>
-                          <div className="text-xs text-cream-600">{u.email}</div>
+                          <div className="font-semibold text-ink-900">{u.fullName}</div>
+                          <div className="text-xs text-stone-600">{u.email}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">{roleDisplayName(u.role)}</td>
-                    <td className="px-4 py-3 text-cream-700">{u.phoneNumber || '—'}</td>
+                    <td className="px-4 py-3 text-stone-700">{u.phoneNumber || '—'}</td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1.5 text-sage-800 text-xs font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-sage-600" />
+                      <span className="inline-flex items-center gap-1.5 text-tea-800 text-xs font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-tea-600" />
                         Active
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-cream-600">{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-stone-600">{new Date(u.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -256,10 +251,10 @@ export const AdminDashboardView: React.FC = () => {
       )}
 
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/50">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 border border-cream-200">
-            <h3 className="font-display text-xl font-semibold text-navy-900">Remove this listing?</h3>
-            <p className="text-sm text-cream-700 mt-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55 backdrop-blur-[3px]">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 border border-stone-200">
+            <h3 className="font-display text-xl font-semibold text-ink-900">Remove this listing?</h3>
+            <p className="text-sm text-stone-700 mt-2">
               “{confirmDelete.title}” will be taken down and the report will be marked resolved. This cannot be undone.
             </p>
             <div className="mt-6 flex justify-end gap-2">
@@ -273,7 +268,7 @@ export const AdminDashboardView: React.FC = () => {
                   updateReportStatus(confirmDelete.reportId, 'RESOLVED');
                   setConfirmDelete(null);
                 }}
-                className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-terra-700 hover:bg-terra-800"
+                className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-tea-800 hover:bg-tea-900"
               >
                 <span className="inline-flex items-center gap-1.5">
                   <Trash2 className="w-4 h-4" />

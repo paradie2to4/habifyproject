@@ -36,10 +36,10 @@ export const Pagination: React.FC<PaginationProps> = ({
   });
 
   return (
-    <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-cream-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <p className="text-xs text-cream-600">
-        Showing <span className="font-semibold text-navy-900">{start}–{end}</span> of{' '}
-        <span className="font-semibold text-navy-900">{totalItems}</span> properties
+    <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <p className="text-xs text-stone-600">
+        Showing <span className="font-semibold text-ink-900">{start}–{end}</span> of{' '}
+        <span className="font-semibold text-ink-900">{totalItems}</span> properties
       </p>
 
       <div className="flex items-center gap-1.5">
@@ -47,7 +47,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           type="button"
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-cream-200 text-navy-900 hover:bg-cream-50 disabled:opacity-40 disabled:pointer-events-none"
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-stone-200 text-ink-900 hover:bg-stone-50 disabled:opacity-40 disabled:pointer-events-none"
           aria-label="Previous page"
         >
           <ChevronLeft className="w-3.5 h-3.5" />
@@ -56,7 +56,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 
         {withEllipsis.map((item, idx) =>
           item === '…' ? (
-            <span key={`e-${idx}`} className="px-1 text-xs text-cream-500">
+            <span key={`e-${idx}`} className="px-1 text-xs text-stone-500">
               …
             </span>
           ) : (
@@ -66,8 +66,8 @@ export const Pagination: React.FC<PaginationProps> = ({
               onClick={() => onPageChange(item)}
               className={`min-w-8 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                 item === page
-                  ? 'bg-navy-900 text-white'
-                  : 'border border-cream-200 text-navy-900 hover:bg-cream-50'
+                  ? 'bg-tea-700 text-white'
+                  : 'border border-stone-200 text-ink-900 hover:bg-stone-50'
               }`}
               aria-current={item === page ? 'page' : undefined}
             >
@@ -80,7 +80,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           type="button"
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-cream-200 text-navy-900 hover:bg-cream-50 disabled:opacity-40 disabled:pointer-events-none"
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-stone-200 text-ink-900 hover:bg-stone-50 disabled:opacity-40 disabled:pointer-events-none"
           aria-label="Next page"
         >
           Next

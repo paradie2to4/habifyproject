@@ -15,29 +15,22 @@ const markSizes = {
 };
 
 const titleSizes = {
-  sm: 'text-[15px]',
-  md: 'text-lg',
-  lg: 'text-2xl'
+  sm: 'text-[19px]',
+  md: 'text-[22px]',
+  lg: 'text-3xl'
 };
 
+/** Mark: a roofline over tea-terrace contours, with a saffron sun. */
 export const HabifyMark: React.FC<{ size?: 'sm' | 'md' | 'lg'; className?: string }> = ({
   size = 'md',
   className = ''
 }) => (
-  <svg
-    viewBox="0 0 40 40"
-    className={`${markSizes[size]} ${className}`}
-    aria-hidden="true"
-  >
-    <rect width="40" height="40" rx="10" fill="#1a2942" />
-    <path
-      d="M10 19.5L20 11l10 8.5V30a2 2 0 0 1-2 2H12a2 2 0 0 1-2-2V19.5z"
-      fill="none"
-      stroke="#faf8f5"
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
-    <rect x="17.5" y="23.5" width="5" height="8.5" rx="0.8" fill="#d46251" />
+  <svg viewBox="0 0 40 40" className={`${markSizes[size]} shrink-0 ${className}`} aria-hidden="true">
+    <rect width="40" height="40" rx="12" fill="var(--color-tea-700)" />
+    <circle cx="28.5" cy="12" r="3.2" fill="var(--color-saffron-400)" />
+    <path d="M9 20.5 20 12l11 8.5" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9 26.5c4-2.6 8-2.6 11 0s7.2 2.6 11 0" fill="none" stroke="#fff" strokeOpacity=".9" strokeWidth="2" strokeLinecap="round" />
+    <path d="M9 31.5c4-2.6 8-2.6 11 0s7.2 2.6 11 0" fill="none" stroke="#fff" strokeOpacity=".55" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
 
@@ -48,30 +41,22 @@ export const HabifyLogo: React.FC<HabifyLogoProps> = ({
   className = '',
   markOnly = false
 }) => {
-  const isDark = theme === 'dark';
+  const onDark = theme === 'dark';
 
-  if (markOnly) {
-    return <HabifyMark size={size} className={className} />;
-  }
+  if (markOnly) return <HabifyMark size={size} className={className} />;
 
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
       <HabifyMark size={size} />
-      <div className="text-left leading-tight">
+      <div className="text-left leading-none">
         <span
-          className={`${titleSizes[size]} font-semibold tracking-tight ${
-            isDark ? 'text-white' : 'text-navy-900'
-          }`}
+          className={`font-display ${titleSizes[size]} font-bold tracking-[-0.04em] ${onDark ? 'text-white' : 'text-ink-900'}`}
         >
-          Hab<span className="text-terra-600">i</span>fy
+          habify<span className="text-saffron-500">.</span>
         </span>
         {showTagline && (
-          <p
-            className={`mt-0.5 text-[11px] font-medium tracking-wide ${
-              isDark ? 'text-cream-400' : 'text-cream-600'
-            } hidden sm:block`}
-          >
-            Find Where You Belong.
+          <p className={`mt-1 text-[11px] font-medium ${onDark ? 'text-stone-400' : 'text-stone-600'} hidden sm:block`}>
+            Find where you belong
           </p>
         )}
       </div>

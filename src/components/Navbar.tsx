@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useTheme } from '../context/ThemeContext';
 import { ActiveTab } from '../types';
 import { HabifyLogo } from './HabifyLogo';
-import { ownerRoleLabel, roleDisplayName } from '../utils/roles';
+import { roleDisplayName } from '../utils/roles';
 import {
   Compass,
   Sparkles,
@@ -11,434 +13,307 @@ import {
   LayoutDashboard,
   SlidersHorizontal,
   Calculator,
-  PlusCircle,
+  Plus,
   LogOut,
-  LogIn,
-  Menu,
-  X,
-  ShieldAlert
+  ShieldCheck,
+  Moon,
+  Sun,
+  ChevronDown,
+  UserRound,
+  Building2
 } from 'lucide-react';
 
+interface NavItem {
+  tab: ActiveTab;
+  label: string;
+  short: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
+  dot?: boolean;
+}
+
+const ThemeToggle: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const { theme, toggleTheme } = useTheme();
+  const dark = theme === 'dark';
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      className={`w-10 h-10 inline-flex items-center justify-center rounded-full text-ink-600 hover:text-ink-900 hover:bg-stone-100 transition-colors ${className}`}
+      aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={dark ? 'Light mode' : 'Dark mode'}
+    >
+      {dark ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+    </button>
+  );
+};
+
+const Avatar: React.FC<{ src?: string; name: string; size?: string }> = ({ src, name, size = 'w-9 h-9' }) =>
+  src ? (
+    <img src={src} alt="" className={`${size} rounded-full object-cover ring-2 ring-white`} referrerPolicy="no-referrer" />
+  ) : (
+    <span className={`${size} rounded-full bg-tea-100 text-tea-800 inline-flex items-center justify-center text-sm font-semibold`}>
+      {name.charAt(0).toUpperCase()}
+    </span>
+  );
+
 export const Navbar: React.FC = () => {
-  const {
-    currentUser,
-    favorites,
-    viewings,
-    inquiries,
-    reports,
-    currentTab,
-    setCurrentTab,
-    openModal,
-    switchRole
-  } = useApp();
+  const { currentUser, favorites, viewings, inquiries, reports, currentTab, setCurrentTab, openModal, switchRole } = useApp();
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const onPropertyPage = location.pathname.startsWith('/properties/');
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
-  // Computed badge counts — scoped to the signed-in user
-  const pendingViewingsCount = currentUser?.role === 'LANDLORD'
-    ? viewings.filter(v => v.landlordId === currentUser.id && v.status === 'PENDING').length
-    : currentUser
-      ? viewings.filter(v => v.tenantId === currentUser.id && (v.status === 'PENDING' || v.status === 'APPROVED')).length
-      : 0;
+  // Close the account menu on outside click / Escape / navigation
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+  useEffect(() => setMenuOpen(false), [location.pathname]);
 
-  const unreadInquiriesCount = currentUser?.role === 'LANDLORD'
-    ? inquiries.filter(i => i.landlordId === currentUser.id && !i.isRead).length
-    : currentUser
-      ? inquiries.filter(i => i.tenantId === currentUser.id && Boolean(i.reply)).length
-      : 0;
+  const role = currentUser?.role;
+  const pendingViewings =
+    role === 'LANDLORD'
+      ? viewings.filter(v => v.landlordId === currentUser!.id && v.status === 'PENDING').length
+      : currentUser
+        ? viewings.filter(v => v.tenantId === currentUser.id && (v.status === 'PENDING' || v.status === 'APPROVED')).length
+        : 0;
+  const unreadMessages =
+    role === 'LANDLORD'
+      ? inquiries.filter(i => i.landlordId === currentUser!.id && !i.isRead).length
+      : currentUser
+        ? inquiries.filter(i => i.tenantId === currentUser.id && Boolean(i.reply)).length
+        : 0;
+  const pendingReports = role === 'ADMIN' ? reports.filter(r => r.status === 'PENDING').length : 0;
 
-  const pendingReportsCount = currentUser?.role === 'ADMIN'
-    ? reports.filter(r => r.status === 'PENDING').length
-    : 0;
+  const items: NavItem[] = [
+    { tab: 'BROWSE', label: 'Explore', short: 'Explore', icon: Compass },
+    { tab: 'RECOMMENDATIONS', label: 'Matches', short: 'Matches', icon: Sparkles }
+  ];
+  if (role === 'TENANT') {
+    items.push({ tab: 'TENANT_DASHBOARD', label: 'Dashboard', short: 'Home', icon: LayoutDashboard });
+    items.push({ tab: 'FAVORITES', label: 'Saved', short: 'Saved', icon: Heart, badge: favorites.length });
+  }
+  if (role === 'LANDLORD') {
+    items.push({ tab: 'LANDLORD_DASHBOARD', label: 'Owner hub', short: 'Hub', icon: Building2, badge: pendingViewings });
+  }
+  if (role === 'ADMIN') {
+    items.push({ tab: 'ADMIN_DASHBOARD', label: 'Admin', short: 'Admin', icon: ShieldCheck, badge: pendingReports });
+  }
+  if (currentUser) {
+    items.push({ tab: 'INQUIRIES', label: 'Messages', short: 'Inbox', icon: MessageSquare, dot: pendingViewings > 0 || unreadMessages > 0 });
+  }
 
-  const handleNavClick = (tab: ActiveTab) => {
-    setCurrentTab(tab);
-    setMobileMenuOpen(false);
+  const isActive = (tab: ActiveTab) =>
+    !onPropertyPage && (currentTab === tab || (tab === 'ADMIN_DASHBOARD' && currentTab === 'ADMIN_MAP'));
+
+  const menuAction = (fn: () => void) => () => {
+    setMenuOpen(false);
+    fn();
   };
 
   return (
-    <nav id="main-navigation" className="sticky top-0 z-40 bg-white border-b border-cream-200 shadow-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          
-          {/* Logo & Brand */}
-          <div className="flex items-center gap-4">
-            <button
-              id="brand-logo-btn"
-              onClick={() => handleNavClick('BROWSE')}
-              className="flex items-center focus:outline-none"
-            >
-              <HabifyLogo size="md" showTagline={false} />
-            </button>
-          </div>
+    <>
+      <header
+        id="main-navigation"
+        className={`sticky top-0 z-40 transition-[background-color,box-shadow,border-color] duration-300 border-b ${
+          scrolled
+            ? 'bg-white/85 backdrop-blur-xl border-stone-200 shadow-[0_1px_0_rgba(0,0,0,0.02)]'
+            : 'bg-transparent border-transparent'
+        }`}
+      >
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-6">
+          <button type="button" onClick={() => setCurrentTab('BROWSE')} className="shrink-0 rounded-xl" aria-label="Habify home">
+            <HabifyLogo size="md" />
+          </button>
 
-          {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center space-x-1">
-            <button
-              id="nav-browse-btn"
-              onClick={() => handleNavClick('BROWSE')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                currentTab === 'BROWSE'
-                  ? 'text-navy-900 bg-navy-100'
-                  : 'text-cream-600 hover:text-navy-900 hover:bg-cream-100'
-              }`}
-            >
-              <Compass className="w-4 h-4" />
-              Explore
-            </button>
-
-            <button
-              id="nav-recommendations-btn"
-              onClick={() => handleNavClick('RECOMMENDATIONS')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                currentTab === 'RECOMMENDATIONS'
-                  ? 'text-navy-900 bg-navy-100'
-                  : 'text-cream-600 hover:text-navy-900 hover:bg-cream-100'
-              }`}
-            >
-              <Sparkles className="w-4 h-4" />
-              Smart Matches
-            </button>
-
-            {currentUser?.role === 'TENANT' && (
-              <>
+          {/* Desktop links */}
+          <nav className="hidden md:flex items-center gap-1" aria-label="Main">
+            {items.map(item => {
+              const active = isActive(item.tab);
+              return (
                 <button
-                  id="nav-tenant-dashboard-btn"
-                  onClick={() => handleNavClick('TENANT_DASHBOARD')}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                    currentTab === 'TENANT_DASHBOARD'
-                      ? 'text-navy-900 bg-navy-100'
-                      : 'text-cream-600 hover:text-navy-900 hover:bg-cream-100'
+                  key={item.tab}
+                  type="button"
+                  onClick={() => setCurrentTab(item.tab)}
+                  aria-current={active ? 'page' : undefined}
+                  className={`relative h-10 px-3.5 rounded-full text-sm font-medium inline-flex items-center gap-2 transition-colors ${
+                    active ? 'bg-tea-700 text-white' : 'text-ink-700 hover:text-ink-900 hover:bg-stone-100'
                   }`}
                 >
-                  <LayoutDashboard className="w-4 h-4" />
-                  Dashboard
-                </button>
-
-                <button
-                  id="nav-favorites-btn"
-                  onClick={() => handleNavClick('FAVORITES')}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 relative ${
-                    currentTab === 'FAVORITES'
-                      ? 'text-navy-900 bg-navy-100'
-                      : 'text-cream-600 hover:text-navy-900 hover:bg-cream-100'
-                  }`}
-                >
-                  <Heart className="w-4 h-4" />
-                  Saved
-                  {favorites.length > 0 && (
-                    <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-terra-600 rounded-full">
-                      {favorites.length}
+                  {item.label}
+                  {!!item.badge && (
+                    <span
+                      className={`min-w-5 h-5 px-1.5 rounded-full text-[11px] font-semibold inline-flex items-center justify-center tabular-nums ${
+                        active ? 'bg-white/20 text-white' : 'bg-saffron-100 text-saffron-800'
+                      }`}
+                    >
+                      {item.badge}
                     </span>
                   )}
+                  {item.dot && <span className="w-1.5 h-1.5 rounded-full bg-saffron-500" aria-label="New activity" />}
                 </button>
-              </>
-            )}
+              );
+            })}
+          </nav>
 
-            {/* Owner hub — landlords / landladies only */}
-            {currentUser?.role === 'LANDLORD' && (
-              <button
-                id="nav-landlord-dashboard-btn"
-                onClick={() => handleNavClick('LANDLORD_DASHBOARD')}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                  currentTab === 'LANDLORD_DASHBOARD'
-                    ? 'text-white bg-navy-900'
-                    : 'text-cream-600 hover:text-navy-900 hover:bg-cream-100'
-                }`}
-                title={`${ownerRoleLabel()} hub — manage listings, rent, viewings, and leases`}
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                Owner Hub
-                {pendingViewingsCount > 0 && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-navy-900 bg-white rounded-full">
-                    {pendingViewingsCount}
-                  </span>
-                )}
+          <div className="ml-auto flex items-center gap-1.5">
+            <ThemeToggle />
+
+            {role === 'LANDLORD' && currentTab !== 'LANDLORD_DASHBOARD' && (
+              <button type="button" onClick={() => openModal('ADD_EDIT_PROPERTY')} className="btn-primary rounded-full hidden sm:inline-flex">
+                <Plus className="w-4 h-4" />
+                List a home
               </button>
             )}
 
-            {currentUser?.role === 'ADMIN' && (
-              <button
-                id="nav-admin-dashboard-btn"
-                onClick={() => handleNavClick('ADMIN_DASHBOARD')}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                  currentTab === 'ADMIN_DASHBOARD'
-                    ? 'text-white bg-navy-900'
-                    : 'text-cream-600 hover:text-navy-900 hover:bg-cream-100'
-                }`}
-              >
-                <ShieldAlert className="w-4 h-4" />
-                Admin
-                {pendingReportsCount > 0 && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-navy-900 bg-white rounded-full">
-                    {pendingReportsCount}
-                  </span>
-                )}
-              </button>
-            )}
-
-            {/* Inquiries & Viewings */}
-            {currentUser && (
-              <button
-                id="nav-inquiries-btn"
-                onClick={() => handleNavClick('INQUIRIES')}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 relative ${
-                  currentTab === 'INQUIRIES'
-                    ? 'text-navy-900 bg-navy-100'
-                    : 'text-cream-600 hover:text-navy-900 hover:bg-cream-100'
-                }`}
-              >
-                <MessageSquare className="w-4 h-4" />
-                Messages
-                {(pendingViewingsCount > 0 || unreadInquiriesCount > 0) && (
-                  <span className="w-2 h-2 rounded-full bg-terra-600" />
-                )}
-              </button>
-            )}
-          </div>
-
-          {/* Right Side Actions */}
-          <div className="hidden sm:flex items-center gap-2">
-            {currentUser && (
-              <>
-                <button
-                  id="open-preferences-tool-btn"
-                  onClick={() => openModal('PREFERENCES')}
-                  className="px-3 py-2 rounded-lg text-xs font-medium text-cream-600 bg-cream-100 hover:bg-cream-200 transition-colors flex items-center gap-1.5"
-                  title={currentUser.role === 'TENANT' ? 'Edit profile & match preferences' : 'Edit profile'}
-                >
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
-                  <span className="hidden lg:inline">
-                    {currentUser.role === 'TENANT' ? 'Criteria' : 'Profile'}
-                  </span>
-                </button>
-
-                {currentUser.role === 'TENANT' && (
-                  <button
-                    id="open-affordability-tool-btn"
-                    onClick={() => openModal('AFFORDABILITY_CALCULATOR')}
-                    className="px-3 py-2 rounded-lg text-xs font-medium text-cream-600 bg-cream-100 hover:bg-cream-200 transition-colors flex items-center gap-1.5"
-                    title="Calculate Rent Affordability"
-                  >
-                    <Calculator className="w-3.5 h-3.5" />
-                    <span className="hidden lg:inline">Affordability</span>
-                  </button>
-                )}
-              </>
-            )}
-
-            {currentUser?.role === 'LANDLORD' && (
-              <button
-                id="navbar-add-property-btn"
-                onClick={() => openModal('ADD_EDIT_PROPERTY')}
-                className="btn-primary px-3 py-2 text-xs font-semibold flex items-center gap-1.5"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>Add Property</span>
-              </button>
-            )}
-
-            {/* User Profile or Sign In */}
             {currentUser ? (
-              <div className="flex items-center gap-3 pl-3 border-l border-cream-200">
-                <img
-                  src={currentUser.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
-                  alt={currentUser.fullName}
-                  className="w-8 h-8 rounded-lg object-cover"
-                />
-                <div className="hidden xl:block">
-                  <div className="text-xs font-semibold text-navy-900 leading-tight">
-                    {currentUser.fullName.split(' ')[0]}
-                  </div>
-                  <div className="text-[10px] text-cream-600">
-                    {roleDisplayName(currentUser.role)}
-                  </div>
-                </div>
+              <div className="relative" ref={menuRef}>
                 <button
-                  id="user-logout-btn"
-                  onClick={() => switchRole('GUEST')}
-                  className="p-1.5 text-cream-500 hover:text-terra-600 hover:bg-terra-50 rounded-lg transition-colors"
-                  title="Sign Out"
+                  type="button"
+                  onClick={() => setMenuOpen(o => !o)}
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  className="h-11 pl-1 pr-2.5 rounded-full inline-flex items-center gap-2 border border-stone-200 bg-white hover:border-stone-300 transition-colors"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <Avatar src={currentUser.avatarUrl} name={currentUser.fullName} />
+                  <span className="hidden lg:block text-sm font-medium text-ink-900 max-w-[9rem] truncate">
+                    {currentUser.fullName.split(' ')[0]}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-stone-600 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
                 </button>
+
+                {menuOpen && (
+                  <div
+                    role="menu"
+                    className="animate-pop absolute right-0 mt-2 w-72 rounded-2xl bg-white border border-stone-200 p-2 origin-top-right"
+                    style={{ boxShadow: 'var(--shadow-lift)' }}
+                  >
+                    <div className="flex items-center gap-3 px-3 py-3">
+                      <Avatar src={currentUser.avatarUrl} name={currentUser.fullName} size="w-11 h-11" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-ink-900 truncate">{currentUser.fullName}</p>
+                        <p className="text-xs text-stone-600 truncate">{currentUser.email}</p>
+                        <span className="mt-1 inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full bg-tea-50 text-tea-800">
+                          {roleDisplayName(currentUser.role)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-px bg-stone-200 my-1" />
+                    <MenuItem icon={role === 'TENANT' ? SlidersHorizontal : UserRound} onClick={menuAction(() => openModal('PREFERENCES'))}>
+                      {role === 'TENANT' ? 'Match preferences' : 'Profile'}
+                    </MenuItem>
+                    {role === 'TENANT' && (
+                      <MenuItem icon={Calculator} onClick={menuAction(() => openModal('AFFORDABILITY_CALCULATOR'))}>
+                        Affordability check
+                      </MenuItem>
+                    )}
+                    {role === 'LANDLORD' && (
+                      <MenuItem icon={Plus} onClick={menuAction(() => openModal('ADD_EDIT_PROPERTY'))}>
+                        List a home
+                      </MenuItem>
+                    )}
+                    <div className="h-px bg-stone-200 my-1" />
+                    <MenuItem icon={LogOut} onClick={menuAction(() => switchRole('GUEST'))}>
+                      Sign out
+                    </MenuItem>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="flex items-center gap-2 pl-3 border-l border-cream-200">
-                <button
-                  id="guest-login-btn"
-                  type="button"
-                  onClick={() => handleNavClick('LOGIN')}
-                  className={`btn-ghost px-3 py-2 text-xs font-semibold flex items-center gap-1.5 ${
-                    currentTab === 'LOGIN' ? 'bg-cream-100 text-navy-900' : ''
-                  }`}
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>Sign in</span>
+              <>
+                <button type="button" onClick={() => setCurrentTab('LOGIN')} className="btn-ghost rounded-full hidden sm:inline-flex">
+                  Sign in
                 </button>
-                <button
-                  id="guest-signup-btn"
-                  type="button"
-                  onClick={() => handleNavClick('SIGNUP')}
-                  className="btn-primary px-3.5 py-2 text-xs font-semibold"
-                >
+                <button type="button" onClick={() => setCurrentTab('SIGNUP')} className="btn-primary rounded-full">
                   Get started
                 </button>
-              </div>
+              </>
             )}
           </div>
-
-          {/* Mobile Menu Toggle */}
-          <div className="md:hidden">
-            <button
-              id="mobile-menu-toggle-btn"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-cream-600 hover:bg-cream-100 transition-colors"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-
         </div>
-      </div>
+      </header>
 
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-cream-50 border-t border-cream-200 px-4 py-3 space-y-2">
-          <button
-            onClick={() => handleNavClick('BROWSE')}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-navy-900 hover:bg-cream-100 font-medium transition-colors"
-          >
-            <Compass className="w-4 h-4" />
-            Explore Properties
-          </button>
-          
-          <button
-            onClick={() => handleNavClick('RECOMMENDATIONS')}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-navy-900 hover:bg-cream-100 font-medium transition-colors"
-          >
-            <Sparkles className="w-4 h-4" />
-            Smart Recommendations
-          </button>
-
-          {currentUser?.role === 'TENANT' && (
-            <>
-              <button
-                onClick={() => handleNavClick('TENANT_DASHBOARD')}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-navy-900 hover:bg-cream-100 font-medium transition-colors"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                My Dashboard
-              </button>
-
-              <button
-                onClick={() => handleNavClick('FAVORITES')}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-navy-900 hover:bg-cream-100 font-medium transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Heart className="w-4 h-4" />
-                  <span>Saved Properties</span>
-                </div>
-                {favorites.length > 0 && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-terra-600 rounded-full">
-                    {favorites.length}
+      {/* Mobile tab bar */}
+      {!onPropertyPage && (
+        <nav
+          aria-label="Main"
+          className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/90 backdrop-blur-xl border-t border-stone-200 pb-[env(safe-area-inset-bottom)]"
+        >
+          <div className="grid" style={{ gridTemplateColumns: `repeat(${Math.max(items.length, 3)}, minmax(0, 1fr))` }}>
+            {items.map(item => {
+              const active = isActive(item.tab);
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.tab}
+                  type="button"
+                  onClick={() => setCurrentTab(item.tab)}
+                  aria-current={active ? 'page' : undefined}
+                  className={`relative h-16 flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors ${
+                    active ? 'text-tea-700' : 'text-stone-600'
+                  }`}
+                >
+                  <span className={`w-12 h-7 rounded-full inline-flex items-center justify-center transition-colors ${active ? 'bg-tea-100' : ''}`}>
+                    <Icon className="w-5 h-5" />
                   </span>
-                )}
-              </button>
-            </>
-          )}
-
-          {currentUser?.role === 'LANDLORD' && (
-            <button
-              onClick={() => handleNavClick('LANDLORD_DASHBOARD')}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-navy-900 hover:bg-cream-100 font-medium transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <LayoutDashboard className="w-4 h-4" />
-                <span>Owner Hub</span>
-              </div>
-              {pendingViewingsCount > 0 && (
-                <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-terra-600 rounded-full">
-                  {pendingViewingsCount}
-                </span>
-              )}
-            </button>
-          )}
-
-          {currentUser?.role === 'ADMIN' && (
-            <button
-              onClick={() => handleNavClick('ADMIN_DASHBOARD')}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-navy-900 hover:bg-cream-100 font-medium transition-colors"
-            >
-              <ShieldAlert className="w-4 h-4" />
-              <span>Admin Panel</span>
-            </button>
-          )}
-
-          {currentUser && (
-            <button
-              onClick={() => handleNavClick('INQUIRIES')}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-navy-900 hover:bg-cream-100 font-medium transition-colors"
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>Messages</span>
-            </button>
-          )}
-
-          {currentUser && (
-            <div className="pt-2 border-t border-cream-300 grid grid-cols-2 gap-2">
-              <button
-                onClick={() => { openModal('PREFERENCES'); setMobileMenuOpen(false); }}
-                className="py-2 px-3 text-xs bg-cream-100 text-navy-900 font-medium rounded-lg hover:bg-cream-200 transition-colors"
-              >
-                {currentUser.role === 'TENANT' ? 'Match Criteria' : 'Edit Profile'}
-              </button>
-              {currentUser.role === 'TENANT' && (
-                <button
-                  onClick={() => { openModal('AFFORDABILITY_CALCULATOR'); setMobileMenuOpen(false); }}
-                  className="py-2 px-3 text-xs bg-cream-100 text-navy-900 font-medium rounded-lg hover:bg-cream-200 transition-colors"
-                >
-                  Affordability
+                  {item.short}
+                  {(!!item.badge || item.dot) && (
+                    <span className="absolute top-2.5 right-[calc(50%-18px)] w-2 h-2 rounded-full bg-saffron-500 ring-2 ring-white" />
+                  )}
                 </button>
-              )}
-              {currentUser.role === 'LANDLORD' && (
-                <button
-                  onClick={() => { openModal('ADD_EDIT_PROPERTY'); setMobileMenuOpen(false); }}
-                  className="py-2 px-3 text-xs font-semibold text-white bg-navy-900 rounded-lg"
-                >
-                  Add Property
-                </button>
-              )}
-            </div>
-          )}
-
-          {currentUser ? (
-            <button
-              onClick={() => switchRole('GUEST')}
-              className="w-full py-2 px-3 text-xs font-semibold text-terra-700 bg-terra-50 rounded-lg hover:bg-terra-100 transition-colors border border-terra-200"
-            >
-              Sign Out
-            </button>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
+              );
+            })}
+            {!currentUser && (
               <button
                 type="button"
-                onClick={() => handleNavClick('LOGIN')}
-                className="w-full btn-secondary text-xs font-semibold rounded-lg py-2"
+                onClick={() => setCurrentTab('LOGIN')}
+                className={`h-16 flex flex-col items-center justify-center gap-1 text-[11px] font-medium ${
+                  currentTab === 'LOGIN' ? 'text-tea-700' : 'text-stone-600'
+                }`}
               >
+                <span className="w-12 h-7 inline-flex items-center justify-center">
+                  <UserRound className="w-5 h-5" />
+                </span>
                 Sign in
               </button>
-              <button
-                type="button"
-                onClick={() => handleNavClick('SIGNUP')}
-                className="w-full btn-primary text-xs font-semibold rounded-lg py-2"
-              >
-                Get started
-              </button>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </nav>
       )}
-    </nav>
+    </>
   );
 };
+
+const MenuItem: React.FC<{ icon: React.ComponentType<{ className?: string }>; onClick: () => void; children: React.ReactNode }> = ({
+  icon: Icon,
+  onClick,
+  children
+}) => (
+  <button
+    type="button"
+    role="menuitem"
+    onClick={onClick}
+    className="w-full flex items-center gap-3 px-3 h-11 rounded-xl text-sm text-ink-800 hover:bg-stone-100 transition-colors"
+  >
+    <Icon className="w-[18px] h-[18px] text-stone-600" />
+    {children}
+  </button>
+);

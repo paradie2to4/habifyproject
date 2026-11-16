@@ -27,8 +27,8 @@ export const FavoritesView: React.FC = () => {
     <div id="favorites-view-container" className="space-y-8 text-left">
       <header className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-semibold text-navy-900">Saved homes</h1>
-          <p className="text-sm text-cream-600 mt-2">
+          <h1 className="font-display text-3xl font-semibold text-ink-900">Saved homes</h1>
+          <p className="text-sm text-stone-600 mt-2">
             {savedProperties.length > 0
               ? `${savedProperties.length} shortlisted ${savedProperties.length === 1 ? 'home' : 'homes'}. Select two or three to compare.`
               : 'Properties you save will live here.'}
@@ -41,8 +41,8 @@ export const FavoritesView: React.FC = () => {
             disabled={selectedForCompare.length < 2}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
               selectedForCompare.length >= 2
-                ? 'bg-navy-900 hover:bg-navy-800 text-white'
-                : 'bg-cream-100 text-cream-500 cursor-not-allowed'
+                ? 'bg-tea-700 hover:bg-tea-600 text-white'
+                : 'bg-stone-100 text-stone-500 cursor-not-allowed'
             }`}
           >
             <Layers className="w-4 h-4" />
@@ -62,8 +62,8 @@ export const FavoritesView: React.FC = () => {
                   onClick={() => toggleSelectCompare(property.id)}
                   className={`absolute top-3 left-3 z-20 p-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${
                     isSelected
-                      ? 'bg-navy-900 text-white'
-                      : 'bg-white/90 text-navy-900 border border-cream-200'
+                      ? 'bg-tea-700 text-white'
+                      : 'bg-white/90 text-ink-900 border border-stone-200'
                   }`}
                   aria-pressed={isSelected}
                 >

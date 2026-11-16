@@ -2,50 +2,46 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 
+const STYLES = {
+  success: { Icon: CheckCircle2, chip: 'bg-tea-50 text-tea-700' },
+  info: { Icon: Info, chip: 'bg-stone-100 text-ink-700' },
+  warning: { Icon: AlertTriangle, chip: 'bg-saffron-50 text-saffron-700' },
+  error: { Icon: AlertCircle, chip: 'bg-red-50 text-red-700' }
+} as const;
+
 export const ToastContainer: React.FC = () => {
   const { toasts, removeToast } = useApp();
 
-  if (toasts.length === 0) return null;
-
   return (
-    <aside aria-label="Notifications" className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-3">
+    <section
+      aria-label="Notifications"
+      aria-live="polite"
+      className="fixed top-20 right-4 left-4 sm:left-auto z-[65] flex flex-col items-stretch sm:items-end gap-2 pointer-events-none"
+    >
       {toasts.map(toast => {
-        let border = 'border-cream-300';
-        let Icon = Info;
-        let iconColor = 'text-navy-300';
-
-        if (toast.type === 'success') {
-          border = 'border-sage-600/40';
-          Icon = CheckCircle2;
-          iconColor = 'text-sage-400';
-        } else if (toast.type === 'warning') {
-          border = 'border-terra-500/40';
-          Icon = AlertTriangle;
-          iconColor = 'text-terra-400';
-        } else if (toast.type === 'error') {
-          border = 'border-terra-700/50';
-          Icon = AlertCircle;
-          iconColor = 'text-terra-400';
-        }
-
+        const { Icon, chip } = STYLES[toast.type];
         return (
           <div
             key={toast.id}
-            className={`pointer-events-auto flex items-start gap-2.5 p-3.5 rounded-lg border bg-navy-950 text-white shadow-lg ${border}`}
+            role={toast.type === 'error' ? 'alert' : 'status'}
+            className="animate-pop pointer-events-auto w-full sm:w-[360px] flex items-start gap-3 p-3 pr-2 rounded-2xl bg-white border border-stone-200"
+            style={{ boxShadow: 'var(--shadow-lift)' }}
           >
-            <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${iconColor}`} />
-            <div className="flex-1 text-sm font-medium leading-snug">{toast.message}</div>
+            <span className={`w-8 h-8 shrink-0 rounded-xl inline-flex items-center justify-center ${chip}`}>
+              <Icon className="w-[18px] h-[18px]" />
+            </span>
+            <p className="flex-1 pt-1.5 text-sm text-ink-800 leading-snug">{toast.message}</p>
             <button
               type="button"
               onClick={() => removeToast(toast.id)}
-              className="text-cream-500 hover:text-white p-0.5 rounded transition-colors"
-              aria-label="Dismiss"
+              className="w-8 h-8 shrink-0 rounded-lg inline-flex items-center justify-center text-stone-500 hover:text-ink-900 hover:bg-stone-100 transition-colors"
+              aria-label="Dismiss notification"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         );
       })}
-    </aside>
+    </section>
   );
 };

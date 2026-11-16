@@ -1,26 +1,27 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { PropertyCard } from '../components/PropertyCard';
-import { Pagination } from '../components/Pagination';
+import { PropertyCard, PropertyCardSkeleton } from '../components/PropertyCard';
+import { ListingsMap } from '../components/ListingsMap';
+import { FilterState } from '../types';
 import {
   ALL_AMENITY_OPTIONS,
   RWANDA_PROVINCES,
-  RWANDA_DISTRICTS_BY_PROVINCE,
-  RWANDA_LOCATIONS_DATA
+  RWANDA_DISTRICTS_BY_PROVINCE
 } from '../data/seedData';
 import {
   Search,
-  MapPin,
-  RotateCcw,
-  Building,
-  Filter,
-  Check,
+  SlidersHorizontal,
+  X,
+  Map as MapIcon,
   LayoutGrid,
-  Globe2
+  Columns2,
+  Building,
+  ArrowDownWideNarrow,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 
 const PROPERTY_TYPES: Array<{ value: string; label: string }> = [
-  { value: '', label: 'All Styles' },
   { value: 'APARTMENT', label: 'Apartment' },
   { value: 'HOUSE', label: 'House' },
   { value: 'VILLA', label: 'Villa' },
@@ -29,11 +30,59 @@ const PROPERTY_TYPES: Array<{ value: string; label: string }> = [
   { value: 'DUPLEX', label: 'Duplex' }
 ];
 
-const PAGE_SIZE = 6;
+const BUDGETS = [
+  { value: 2000000, label: 'Any price' },
+  { value: 300000, label: 'Under 300k' },
+  { value: 500000, label: 'Under 500k' },
+  { value: 800000, label: 'Under 800k' },
+  { value: 1200000, label: 'Under 1.2M' }
+];
+
+const SORTS: Array<{ value: FilterState['sortBy']; label: string }> = [
+  { value: 'MATCH_SCORE', label: 'Best match' },
+  { value: 'PRICE_ASC', label: 'Price: low to high' },
+  { value: 'PRICE_DESC', label: 'Price: high to low' },
+  { value: 'NEWEST', label: 'Newest' },
+  { value: 'POPULARITY', label: 'Most popular' },
+  { value: 'QUALITY_SCORE', label: 'Listing quality' }
+];
+
+const BATCH = 12;
+const MAX_PRICE = 2000000;
+
+type Layout = 'split' | 'grid' | 'map';
+
+const chipBase =
+  'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm font-medium border transition-colors whitespace-nowrap';
+const chipIdle = 'bg-white border-stone-300 text-ink-800 hover:border-ink-400 hover:text-ink-900';
+const chipOn = 'bg-tea-700 border-tea-700 text-white';
+
+/** A select styled as a filter chip. */
+const ChipSelect: React.FC<{
+  label: string;
+  value: string | number;
+  active: boolean;
+  onChange: (v: string) => void;
+  children: React.ReactNode;
+}> = ({ label, value, active, onChange, children }) => (
+  <label className={`${chipBase} ${active ? chipOn : chipIdle} relative cursor-pointer pr-8`}>
+    <span className="sr-only">{label}</span>
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className="appearance-none bg-transparent border-0 p-0 pr-1 text-sm font-medium focus:ring-0 cursor-pointer text-inherit"
+    >
+      {children}
+    </select>
+    <svg aria-hidden className="w-3.5 h-3.5 absolute right-3 pointer-events-none opacity-70" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M5.5 7.5 10 12l4.5-4.5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+    </svg>
+  </label>
+);
 
 export const BrowseView: React.FC = () => {
   const {
-    filteredAndSortedProperties,
+    filteredAndSortedProperties: results,
     filters,
     setFilters,
     resetFilters,
@@ -43,502 +92,511 @@ export const BrowseView: React.FC = () => {
     backendStatus
   } = useApp();
 
-  const [page, setPage] = useState(1);
+  const [layout, setLayout] = useState<Layout>('split');
+  const [mobileMap, setMobileMap] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [visible, setVisible] = useState(BATCH);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
-  const totalPages = Math.max(1, Math.ceil(filteredAndSortedProperties.length / PAGE_SIZE));
+  const loading = backendStatus === 'connecting';
+  const shown = useMemo(() => results.slice(0, visible), [results, visible]);
+  const hasMore = visible < results.length;
 
+  // New filters → start from the first batch
+  useEffect(() => setVisible(BATCH), [filters]);
+
+  // Infinite scroll
   useEffect(() => {
-    setPage(1);
-  }, [filters, filteredAndSortedProperties.length]);
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    const io = new IntersectionObserver(
+      entries => {
+        if (entries.some(e => e.isIntersecting)) setVisible(v => v + BATCH);
+      },
+      { rootMargin: '600px' }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, shown.length]);
 
+  // Close drawer on Escape
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setDrawerOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
 
-  const paginatedProperties = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filteredAndSortedProperties.slice(start, start + PAGE_SIZE);
-  }, [filteredAndSortedProperties, page]);
+  const set = <K extends keyof FilterState>(key: K, value: FilterState[K]) =>
+    setFilters(prev => ({ ...prev, [key]: value }));
 
-  const handleProvinceSelect = (prov: string) => {
+  const toggleAmenity = (amenity: string) =>
     setFilters(prev => ({
       ...prev,
-      selectedProvince: prev.selectedProvince === prov ? '' : prov,
-      selectedDistrict: '',
-      selectedLocation: ''
+      selectedAmenities: prev.selectedAmenities.includes(amenity)
+        ? prev.selectedAmenities.filter(a => a !== amenity)
+        : [...prev.selectedAmenities, amenity]
     }));
-  };
 
-  const handleLocationToggle = (sector: string) => {
-    setFilters(prev => ({
-      ...prev,
-      selectedLocation: prev.selectedLocation === sector ? '' : sector
-    }));
-  };
-
-  const handleAmenityToggle = (amenity: string) => {
-    setFilters(prev => {
-      const exists = prev.selectedAmenities.includes(amenity);
-      return {
-        ...prev,
-        selectedAmenities: exists
-          ? prev.selectedAmenities.filter(a => a !== amenity)
-          : [...prev.selectedAmenities, amenity]
-      };
-    });
-  };
-
-  // Available districts based on selected province
-  const availableDistricts = filters.selectedProvince
+  const districts = filters.selectedProvince
     ? RWANDA_DISTRICTS_BY_PROVINCE[filters.selectedProvince as keyof typeof RWANDA_DISTRICTS_BY_PROVINCE] || []
     : [];
 
-  return (
-    <div id="browse-view-container" className="space-y-8">
-      
-      {/* Editorial landing hero */}
-      <section className="relative rounded-xl overflow-hidden min-h-[420px] sm:min-h-[480px] flex items-end">
-        <img
-          src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&auto=format&fit=crop&q=80"
-          alt="Sunlit modern home with warm interiors"
-          className="absolute inset-0 w-full h-full object-cover"
-          referrerPolicy="no-referrer"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-navy-950/90 via-navy-950/45 to-navy-950/20" />
-        <div className="relative z-10 w-full p-6 sm:p-10 lg:p-12 text-left text-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cream-300 mb-3">
-            Habify · Rwanda
-          </p>
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-[3.25rem] font-semibold tracking-tight leading-[1.1] max-w-xl text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]">
-            Find Where You{' '}
-            <span className="text-terra-300">Belong</span>
-            <span className="text-terra-400">.</span>
-          </h1>
-          <p className="mt-4 text-sm sm:text-base text-cream-200 max-w-lg leading-relaxed">
-            Discover rental homes matched to your budget, neighborhood, and the way you live.
-          </p>
+  // Removable chips for everything that narrows the results
+  const activeChips: Array<{ key: string; label: string; clear: () => void }> = [];
+  if (filters.searchQuery.trim()) activeChips.push({ key: 'q', label: `“${filters.searchQuery.trim()}”`, clear: () => set('searchQuery', '') });
+  if (filters.selectedProvince) activeChips.push({ key: 'prov', label: filters.selectedProvince, clear: () => setFilters(p => ({ ...p, selectedProvince: '', selectedDistrict: '', selectedLocation: '' })) });
+  if (filters.selectedDistrict) activeChips.push({ key: 'dist', label: `${filters.selectedDistrict} District`, clear: () => set('selectedDistrict', '') });
+  if (filters.selectedLocation) activeChips.push({ key: 'loc', label: filters.selectedLocation, clear: () => set('selectedLocation', '') });
+  if (filters.propertyType) activeChips.push({ key: 'type', label: PROPERTY_TYPES.find(t => t.value === filters.propertyType)?.label || filters.propertyType, clear: () => set('propertyType', '') });
+  if (filters.maxPrice < MAX_PRICE) activeChips.push({ key: 'price', label: `Under ${filters.maxPrice.toLocaleString()} RWF`, clear: () => set('maxPrice', MAX_PRICE) });
+  if (filters.minBedrooms > 0) activeChips.push({ key: 'beds', label: `${filters.minBedrooms}+ beds`, clear: () => set('minBedrooms', 0) });
+  if (filters.isFurnished) activeChips.push({ key: 'furn', label: 'Furnished', clear: () => set('isFurnished', undefined) });
+  if (filters.hasParking) activeChips.push({ key: 'park', label: 'Parking', clear: () => set('hasParking', undefined) });
+  filters.selectedAmenities.forEach(a => activeChips.push({ key: `a-${a}`, label: a, clear: () => toggleAmenity(a) }));
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => document.getElementById('browse-results')?.scrollIntoView({ behavior: 'smooth' })}
-              className="btn-accent"
-            >
-              Explore properties
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (currentUser?.role === 'LANDLORD') openModal('ADD_EDIT_PROPERTY');
-                else setCurrentTab('SIGNUP');
+  const moreCount =
+    (filters.selectedDistrict ? 1 : 0) +
+    (filters.isFurnished ? 1 : 0) +
+    (filters.hasParking ? 1 : 0) +
+    filters.selectedAmenities.length;
+
+  const scrollToResults = () => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  const showMap = layout !== 'grid';
+  const showList = layout !== 'map';
+  const gridCols =
+    layout === 'grid'
+      ? 'sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4'
+      : 'sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3';
+
+  return (
+    <div id="browse-view-container" className="space-y-6 text-left">
+      {/* Hero */}
+      <section className="relative overflow-hidden rounded-[28px] bg-white border border-stone-200 topo-ink">
+        <div className="grid lg:grid-cols-[1.05fr_1fr] gap-8 lg:gap-4 p-6 sm:p-10 lg:p-12 xl:p-14">
+          <div className="flex flex-col justify-center max-w-xl">
+            <span className="eyebrow inline-flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-saffron-500" aria-hidden />
+              {results.length > 0 ? `${results.length} homes across Rwanda` : 'Homes across Rwanda'}
+            </span>
+            <h1 className="mt-4 font-display font-bold text-ink-900 text-[2.6rem] leading-[1.02] sm:text-6xl xl:text-[4.25rem]">
+              Find where you <span className="text-tea-700">belong</span><span className="text-saffron-500">.</span>
+            </h1>
+            <p className="mt-5 text-base sm:text-lg text-ink-600 leading-relaxed max-w-md">
+              Homes matched to your budget, your neighborhood and the way you live, with an honest score for every one.
+            </p>
+
+            <form
+              role="search"
+              onSubmit={e => {
+                e.preventDefault();
+                scrollToResults();
               }}
-              className="px-4 py-2.5 rounded-lg text-sm font-semibold bg-white/10 hover:bg-white/15 text-white border border-white/25 transition-colors"
+              className="mt-8 flex items-center gap-2 bg-white rounded-2xl p-2 pl-4 border border-stone-300 focus-within:border-tea-600 focus-within:ring-4 focus-within:ring-tea-600/15 transition-[border-color,box-shadow]"
+              style={{ boxShadow: 'var(--shadow-card)' }}
             >
-              List your property
-            </button>
+              <Search className="w-5 h-5 text-stone-600 shrink-0" aria-hidden />
+              <label htmlFor="hero-search" className="sr-only">Search by neighborhood, district or keyword</label>
+              <input
+                id="hero-search"
+                type="search"
+                value={filters.searchQuery}
+                onChange={e => set('searchQuery', e.target.value)}
+                placeholder="Kimihurura, Musanze, garden, generator…"
+                className="flex-1 min-w-0 bg-transparent border-0 focus:ring-0 focus:outline-none text-ink-900 placeholder:text-stone-500 text-[15px] py-2"
+              />
+              <button type="submit" className="btn-primary h-11 px-5 sm:px-6">
+                Search
+              </button>
+            </form>
+
+            <div className="mt-5 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-stone-600 mr-1">Popular:</span>
+              {['Kimihurura', 'Nyarutarama', 'Kacyiru', 'Kicukiro'].map(place => (
+                <button
+                  key={place}
+                  type="button"
+                  onClick={() => {
+                    set('searchQuery', place);
+                    scrollToResults();
+                  }}
+                  className="h-8 px-3 rounded-full bg-stone-100 text-ink-800 hover:bg-tea-50 hover:text-tea-800 transition-colors"
+                >
+                  {place}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Compact search strip */}
-          <div className="mt-8 bg-white rounded-xl p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-navy-900 shadow-md max-w-4xl">
-            <div className="lg:col-span-1">
-              <label className="text-[10px] font-semibold uppercase tracking-wide text-cream-600 px-1">Location</label>
-              <input
-                type="text"
-                value={filters.searchQuery}
-                onChange={e => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
-                placeholder="Kacyiru, Musanze…"
-                className="w-full px-2 py-2 text-sm rounded-lg border-0 focus:ring-0 placeholder:text-cream-500"
+          {/* Photo with floating proof points */}
+          <div className="relative hidden sm:block min-h-[340px] lg:min-h-[460px]">
+            <div className="palette-light absolute inset-0 lg:left-6 rounded-3xl overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1400&auto=format&fit=crop&q=80"
+                alt="Sunlit modern home with a garden"
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-ink-950/35 via-transparent to-transparent" />
             </div>
-            <div>
-              <label className="text-[10px] font-semibold uppercase tracking-wide text-cream-600 px-1">Budget</label>
-              <select
-                value={filters.maxPrice}
-                onChange={e => setFilters(prev => ({ ...prev, maxPrice: Number(e.target.value) }))}
-                className="w-full px-2 py-2 text-sm rounded-lg bg-transparent border-0 focus:ring-0"
-              >
-                <option value={2000000}>Any budget</option>
-                <option value={300000}>Up to 300k</option>
-                <option value={500000}>Up to 500k</option>
-                <option value={800000}>Up to 800k</option>
-                <option value={1200000}>Up to 1.2M</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] font-semibold uppercase tracking-wide text-cream-600 px-1">Type</label>
-              <select
-                value={filters.propertyType}
-                onChange={e => setFilters(prev => ({ ...prev, propertyType: e.target.value }))}
-                className="w-full px-2 py-2 text-sm rounded-lg bg-transparent border-0 focus:ring-0"
-              >
-                {PROPERTY_TYPES.map(t => (
-                  <option key={t.value || 'all'} value={t.value}>{t.label}</option>
+
+            <div
+              className="animate-pop absolute left-0 bottom-8 w-64 rounded-2xl bg-white border border-stone-200 p-4"
+              style={{ boxShadow: 'var(--shadow-lift)', animationDelay: '250ms' }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-tea-800 bg-tea-50 px-2 py-1 rounded-full">92% match</span>
+                <span className="text-xs text-stone-600">Kimihurura</span>
+              </div>
+              <p className="mt-3 font-display text-2xl font-bold text-ink-900 tabular-nums">
+                350,000 <span className="font-sans text-xs font-medium text-stone-600">RWF / month</span>
+              </p>
+              <div className="mt-3 space-y-1.5">
+                {['Within your budget', 'Water tank and backup power', 'Furnished, with a balcony'].map(t => (
+                  <p key={t} className="text-xs text-ink-700 flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-full bg-tea-100 text-tea-700 inline-flex items-center justify-center text-[10px]" aria-hidden>✓</span>
+                    {t}
+                  </p>
                 ))}
-              </select>
+              </div>
             </div>
-            <div>
-              <label className="text-[10px] font-semibold uppercase tracking-wide text-cream-600 px-1">Bedrooms</label>
-              <select
-                value={filters.minBedrooms}
-                onChange={e => setFilters(prev => ({ ...prev, minBedrooms: Number(e.target.value) }))}
-                className="w-full px-2 py-2 text-sm rounded-lg bg-transparent border-0 focus:ring-0"
-              >
-                <option value={0}>Any</option>
-                <option value={1}>1+</option>
-                <option value={2}>2+</option>
-                <option value={3}>3+</option>
-                <option value={4}>4+</option>
-              </select>
+
+            <div
+              className="animate-pop absolute right-4 top-6 rounded-2xl bg-white/95 border border-stone-200 px-4 py-3 flex items-center gap-3"
+              style={{ boxShadow: 'var(--shadow-card)', animationDelay: '400ms' }}
+            >
+              <span className="w-9 h-9 rounded-full bg-saffron-100 text-saffron-800 inline-flex items-center justify-center font-display font-bold">30%</span>
+              <span className="text-xs leading-snug text-ink-700">
+                Rule of thumb:
+                <br />
+                <span className="font-semibold text-ink-900">rent under 30% of income</span>
+              </span>
             </div>
+          </div>
+        </div>
+
+        <div className="border-t border-stone-200 px-6 sm:px-10 lg:px-12 xl:px-14 py-4 flex flex-wrap items-center gap-x-8 gap-y-2 text-sm text-ink-700">
+          {[
+            ['Verified landlords', 'Every listing tied to a real account'],
+            ['Explainable scores', 'See exactly why a home fits'],
+            ['Online viewings', 'Book a visit in a few taps']
+          ].map(([title, sub]) => (
+            <p key={title} className="flex items-baseline gap-2">
+              <span className="font-semibold text-ink-900">{title}</span>
+              <span className="hidden sm:inline text-stone-600">{sub}</span>
+            </p>
+          ))}
+          <div className="ml-auto flex gap-2">
             <button
               type="button"
-              onClick={() => document.getElementById('browse-results')?.scrollIntoView({ behavior: 'smooth' })}
-              className="btn-primary w-full self-end flex items-center justify-center gap-2"
+              onClick={() => (currentUser?.role === 'LANDLORD' ? openModal('ADD_EDIT_PROPERTY') : setCurrentTab('SIGNUP'))}
+              className="btn-ghost h-9 px-3 rounded-full"
             >
-              <Search className="w-4 h-4" />
-              Search
+              List your home
+            </button>
+            <button type="button" onClick={() => openModal('AFFORDABILITY_CALCULATOR')} className="btn-secondary h-9 px-3.5 rounded-full">
+              What can I afford?
             </button>
           </div>
         </div>
       </section>
 
-      <div className="text-left">
-        <h2 className="font-display text-2xl sm:text-3xl font-semibold text-navy-900">
-          Find a home that fits your life.
-        </h2>
-        <p className="text-sm text-cream-600 mt-2 max-w-2xl">
-          Browse curated listings across Rwanda — filter by province, budget, and the features that matter.
-        </p>
-      </div>
+      {/* Sticky filter toolbar */}
+      <div
+        ref={resultsRef}
+        className="sticky top-16 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-stone-50/85 backdrop-blur-xl border-b border-stone-200 scroll-mt-16"
+      >
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <ChipSelect
+            label="Province"
+            value={filters.selectedProvince}
+            active={!!filters.selectedProvince}
+            onChange={v => setFilters(p => ({ ...p, selectedProvince: v, selectedDistrict: '', selectedLocation: '' }))}
+          >
+            <option value="">All Rwanda</option>
+            {RWANDA_PROVINCES.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </ChipSelect>
 
-      {/* Rwanda Province Filter Tabs */}
-      <div className="bg-white p-3 rounded-xl border border-cream-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-          <span className="text-xs font-bold uppercase tracking-wider text-cream-600 flex items-center gap-1 shrink-0 mr-1">
-            <Globe2 className="w-3.5 h-3.5 text-terra-600" />
-            Provinces:
-          </span>
+          <ChipSelect label="Price" value={filters.maxPrice} active={filters.maxPrice < MAX_PRICE} onChange={v => set('maxPrice', Number(v))}>
+            {BUDGETS.map(b => (
+              <option key={b.value} value={b.value}>{b.label}</option>
+            ))}
+          </ChipSelect>
+
+          <ChipSelect label="Property type" value={filters.propertyType} active={!!filters.propertyType} onChange={v => set('propertyType', v)}>
+            <option value="">Any type</option>
+            {PROPERTY_TYPES.map(t => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </ChipSelect>
+
+          <ChipSelect label="Bedrooms" value={filters.minBedrooms} active={filters.minBedrooms > 0} onChange={v => set('minBedrooms', Number(v))}>
+            <option value={0}>Any beds</option>
+            {[1, 2, 3, 4].map(n => (
+              <option key={n} value={n}>{n}+ beds</option>
+            ))}
+          </ChipSelect>
 
           <button
-            onClick={() => handleProvinceSelect('')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
-              filters.selectedProvince === ''
-                ? 'bg-navy-900 text-white shadow-xs'
-                : 'bg-cream-100 text-navy-900 hover:bg-cream-200'
-            }`}
+            type="button"
+            onClick={() => set('isFurnished', filters.isFurnished ? undefined : true)}
+            className={`${chipBase} ${filters.isFurnished ? chipOn : chipIdle}`}
+            aria-pressed={!!filters.isFurnished}
           >
-            All Rwanda
+            Furnished
           </button>
 
-          {RWANDA_PROVINCES.map(prov => {
-            const active = filters.selectedProvince === prov;
-            return (
-              <button
-                key={prov}
-                onClick={() => handleProvinceSelect(prov)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-                  active
-                    ? 'bg-terra-600 text-white shadow-xs'
-                    : 'bg-cream-100 text-navy-900 hover:bg-cream-200'
-                }`}
-              >
-                <span>{prov}</span>
-                {active && <Check className="w-3 h-3" />}
-              </button>
-            );
-          })}
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className={`${chipBase} ${moreCount ? chipOn : chipIdle}`}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filters
+            {moreCount > 0 && (
+              <span className="ml-0.5 min-w-5 h-5 px-1 rounded-full bg-tea-700 text-white text-[11px] font-bold inline-flex items-center justify-center">
+                {moreCount}
+              </span>
+            )}
+          </button>
+
+          <div className="ml-auto flex items-center gap-2 pl-2">
+            <ChipSelect label="Sort by" value={filters.sortBy} active={false} onChange={v => set('sortBy', v as FilterState['sortBy'])}>
+              {SORTS.map(s => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </ChipSelect>
+
+            <div className="hidden lg:flex items-center p-1 rounded-full bg-white border border-stone-300" role="group" aria-label="Layout">
+              {([
+                ['grid', LayoutGrid, 'Grid'],
+                ['split', Columns2, 'List and map'],
+                ['map', MapIcon, 'Map']
+              ] as const).map(([value, Icon, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setLayout(value)}
+                  aria-pressed={layout === value}
+                  title={label}
+                  className={`h-7 w-8 rounded-full inline-flex items-center justify-center transition-colors ${
+                    layout === value ? 'bg-tea-700 text-white' : 'text-stone-700 hover:text-ink-900'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="sr-only">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Quick View on Spatial Map button */}
-        <div className="flex items-center gap-2">
-          {filters.selectedProvince && (
-            <span className="text-xs font-semibold text-terra-900 bg-terra-100 px-2.5 py-1 rounded-lg border border-terra-200">
-              Filtered: {filters.selectedProvince}
+        {/* Result summary + active filter chips */}
+        <div className="mt-2.5 flex items-center gap-2 flex-wrap text-sm">
+          <span className="font-semibold text-ink-900" aria-live="polite">
+            {loading ? 'Loading homes…' : `${results.length} ${results.length === 1 ? 'home' : 'homes'}`}
+          </span>
+          {backendStatus === 'online' ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-tea-700">
+              <Wifi className="w-3 h-3" /> Live
             </span>
+          ) : backendStatus === 'offline' ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-stone-700" title="The API is unreachable — showing demo data">
+              <WifiOff className="w-3 h-3" /> Demo data
+            </span>
+          ) : null}
+          {activeChips.map(chip => (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={chip.clear}
+              className="inline-flex items-center gap-1 h-7 pl-3 pr-2 rounded-full bg-saffron-50 text-saffron-900 border border-saffron-200 text-xs font-medium hover:bg-saffron-100"
+              aria-label={`Remove filter ${chip.label}`}
+            >
+              {chip.label}
+              <X className="w-3.5 h-3.5" />
+            </button>
+          ))}
+          {activeChips.length > 1 && (
+            <button type="button" onClick={resetFilters} className="text-xs font-semibold text-stone-700 hover:text-tea-700 underline-offset-2 hover:underline">
+              Clear all
+            </button>
           )}
         </div>
       </div>
 
-      {/* Rwanda Secondary Cities & Key Sectors Quick Filter Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-left">
-        <span className="text-xs font-bold uppercase tracking-wider text-cream-600 flex items-center gap-1 shrink-0 mr-1">
-          <MapPin className="w-3.5 h-3.5 text-terra-600" />
-          Hubs:
-        </span>
-
-        <button
-          onClick={() => setFilters(prev => ({ ...prev, selectedLocation: '' }))}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
-            filters.selectedLocation === ''
-              ? 'bg-terra-600 text-white shadow-xs'
-              : 'bg-white border border-cream-200 text-navy-900 hover:bg-cream-50'
-          }`}
-        >
-          All Locations
-        </button>
-
-        {Object.entries(RWANDA_LOCATIONS_DATA)
-          .filter(([_, info]) => !filters.selectedProvince || info.province === filters.selectedProvince)
-          .map(([locName, info]) => {
-            const active = filters.selectedLocation === locName;
-            return (
-              <button
-                key={locName}
-                onClick={() => handleLocationToggle(locName)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1 ${
-                  active
-                    ? 'bg-navy-900 text-white shadow-xs'
-                    : 'bg-white border border-cream-200 text-navy-900 hover:bg-cream-50'
-                }`}
-              >
-                <span>{locName}</span>
-                <span className="text-[10px] text-cream-600 font-normal">({info.district})</span>
-                {active && <Check className="w-3 h-3 text-terra-300" />}
-              </button>
-            );
-          })}
-      </div>
-
-      {/* Main Layout Grid: Sidebar Filters + Property Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 text-left">
-        
-        {/* Left Sidebar Filters */}
-        <div className="lg:col-span-1 space-y-4">
-          <div className="bg-white rounded-xl p-5 border border-cream-200 shadow-xs space-y-5">
-            
-            <div className="flex items-center justify-between pb-3 border-b border-cream-100">
-              <div className="flex items-center gap-2 font-bold text-sm text-navy-900">
-                <Filter className="w-4 h-4 text-terra-600" />
-                <span>Filters</span>
-              </div>
-              <button
-                onClick={resetFilters}
-                className="text-xs text-cream-600 hover:text-terra-600 font-medium flex items-center gap-1 transition-colors"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>Reset</span>
-              </button>
+      {/* Results */}
+      <div className={`grid gap-6 ${showMap && showList ? 'lg:grid-cols-[minmax(0,1fr)_minmax(380px,42%)]' : ''}`}>
+        <div className={`${showList ? '' : 'hidden'} ${mobileMap ? 'hidden lg:block' : ''}`}>
+          {loading ? (
+            <div className={`grid grid-cols-1 gap-5 ${gridCols}`}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <PropertyCardSkeleton key={i} />
+              ))}
             </div>
-
-            {/* Province Selector */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-navy-700 block">
-                Rwanda Province
-              </label>
-              <select
-                value={filters.selectedProvince}
-                onChange={e => setFilters(prev => ({
-                  ...prev,
-                  selectedProvince: e.target.value,
-                  selectedDistrict: '',
-                  selectedLocation: ''
-                }))}
-                className="w-full px-3 py-2 rounded-lg border border-cream-300 text-xs font-semibold text-navy-900 bg-white focus:ring-2 focus:ring-terra-500"
-              >
-                <option value="">All Rwanda Provinces (5)</option>
-                {RWANDA_PROVINCES.map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* District Selector (Contextual) */}
-            {availableDistricts.length > 0 && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-navy-700 block">
-                  District ({filters.selectedProvince})
-                </label>
-                <select
-                  value={filters.selectedDistrict}
-                  onChange={e => setFilters(prev => ({ ...prev, selectedDistrict: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-cream-300 text-xs font-semibold text-navy-900 bg-white focus:ring-2 focus:ring-terra-500"
-                >
-                  <option value="">All {filters.selectedProvince} Districts</option>
-                  {availableDistricts.map(d => (
-                    <option key={d} value={d}>{d} District</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Monthly Rent Range */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-navy-700 flex items-center justify-between">
-                <span>Max Monthly Rent</span>
-                <span className="font-mono text-terra-600 font-bold text-xs">
-                  {filters.maxPrice >= 2000000 ? 'Any' : `${filters.maxPrice.toLocaleString()} RWF`}
-                </span>
-              </label>
-              <input
-                type="range"
-                min="100000"
-                max="2000000"
-                step="50000"
-                value={filters.maxPrice}
-                onChange={e => setFilters(prev => ({ ...prev, maxPrice: Number(e.target.value) }))}
-                className="w-full h-2 bg-cream-200 rounded-full appearance-none cursor-pointer accent-terra-600"
-              />
-              <div className="flex justify-between text-[10px] text-cream-600 font-mono">
-                <span>100k RWF</span>
-                <span>1M RWF</span>
-                <span>2M+ RWF</span>
-              </div>
-            </div>
-
-            {/* Property Style */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-navy-700 block">
-                Property Style
-              </label>
-              <select
-                value={filters.propertyType}
-                onChange={e => setFilters(prev => ({ ...prev, propertyType: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-cream-300 text-xs font-semibold text-navy-900 bg-white"
-              >
-                {PROPERTY_TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Bedrooms Count */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-navy-700 block">
-                Bedrooms ({filters.minBedrooms > 0 ? `${filters.minBedrooms}+` : 'Any'})
-              </label>
-              <div className="grid grid-cols-5 gap-1">
-                {[0, 1, 2, 3, 4].map(num => (
-                  <button
-                    key={num}
-                    onClick={() => setFilters(prev => ({ ...prev, minBedrooms: num }))}
-                    className={`py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      filters.minBedrooms === num
-                        ? 'bg-navy-900 text-white'
-                        : 'bg-cream-100 hover:bg-cream-200 text-navy-900'
-                    }`}
-                  >
-                    {num === 0 ? 'All' : `${num}+`}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Must-Have Amenities */}
-            <div className="space-y-2 pt-2 border-t border-cream-100">
-              <label className="text-xs font-bold uppercase tracking-wider text-navy-700 block">
-                Popular Features ({filters.selectedAmenities.length})
-              </label>
-              <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                {ALL_AMENITY_OPTIONS.slice(0, 8).map(amenity => {
-                  const active = filters.selectedAmenities.includes(amenity);
-                  return (
-                    <label
-                      key={amenity}
-                      className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
-                        active ? 'bg-terra-50 text-terra-900 font-semibold' : 'text-cream-700 hover:bg-cream-50'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={active}
-                        onChange={() => handleAmenityToggle(amenity)}
-                        className="w-3.5 h-3.5 rounded text-terra-600 focus:ring-terra-500 border-cream-300"
-                      />
-                      <span className="truncate">{amenity}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* Right Content: Property List & Sort Bar */}
-        <div id="browse-results" className="lg:col-span-3 space-y-4">
-          
-          {/* Top Bar: Results Count & Sort Dropdown */}
-          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-cream-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <LayoutGrid className="w-4 h-4 text-terra-600" />
-              <span className="text-sm font-bold text-navy-900">
-                {filteredAndSortedProperties.length} Properties Available
-              </span>
-              {(filters.selectedProvince || filters.selectedLocation) && (
-                <span className="text-xs text-terra-600 font-medium hidden sm:inline">
-                  in {filters.selectedLocation || filters.selectedProvince}
-                </span>
-              )}
-              {backendStatus === 'online' && (
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-sage-700 bg-sage-50 border border-sage-200 px-2 py-0.5 rounded-md">
-                  Live API
-                </span>
-              )}
-              {backendStatus === 'offline' && (
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-cream-700 bg-cream-50 border border-cream-200 px-2 py-0.5 rounded-md">
-                  Local demo
-                </span>
-              )}
-            </div>
-
-            {/* Sort Selection */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-cream-600">Sort by:</span>
-              <select
-                value={filters.sortBy}
-                onChange={e => setFilters(prev => ({ ...prev, sortBy: e.target.value as any }))}
-                className="px-3 py-1.5 rounded-lg border border-cream-300 text-xs font-bold text-navy-900 bg-white focus:outline-none focus:ring-2 focus:ring-terra-500"
-              >
-                <option value="MATCH_SCORE">⚡ Highest Smart Match</option>
-                <option value="PRICE_ASC">Price: Low to High</option>
-                <option value="PRICE_DESC">Price: High to Low</option>
-                <option value="QUALITY_SCORE">Listing Quality Score</option>
-                <option value="POPULARITY">Most Popular & Viewed</option>
-                <option value="NEWEST">Newest Listings</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Properties Grid */}
-          {filteredAndSortedProperties.length > 0 ? (
+          ) : results.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                {paginatedProperties.map(property => (
-                  <PropertyCard key={property.id} property={property} />
+              <div className={`grid grid-cols-1 gap-5 ${gridCols}`}>
+                {shown.map(property => (
+                  <PropertyCard
+                    key={property.id}
+                    property={property}
+                    active={hoveredId === property.id}
+                    onHoverChange={setHoveredId}
+                  />
                 ))}
               </div>
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                totalItems={filteredAndSortedProperties.length}
-                pageSize={PAGE_SIZE}
-                onPageChange={(next) => {
-                  setPage(next);
-                  document.getElementById('browse-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
-              />
+              <div ref={sentinelRef} className="h-px" />
+              {hasMore ? (
+                <div className="flex justify-center pt-6">
+                  <button type="button" onClick={() => setVisible(v => v + BATCH)} className="btn-secondary rounded-full">
+                    Show more homes
+                  </button>
+                </div>
+              ) : results.length > BATCH ? (
+                <p className="text-center text-xs text-stone-600 pt-6">You’ve seen all {results.length} homes.</p>
+              ) : null}
             </>
           ) : (
-            <div className="bg-white rounded-xl p-10 border border-cream-200 text-center space-y-3">
-              <Building className="w-12 h-12 text-cream-300 mx-auto" />
-              <h3 className="text-lg font-bold text-navy-900">No properties match your current filters</h3>
-              <p className="text-xs text-cream-600 max-w-sm mx-auto">
-                Try widening your budget range, clearing province/district filters, or relaxing bedroom constraints.
+            <div className="rounded-3xl border border-dashed border-stone-300 bg-white topo-ink p-10 sm:p-14 text-center">
+              <Building className="w-10 h-10 text-stone-500 mx-auto" aria-hidden />
+              <h2 className="mt-4 text-lg font-semibold text-ink-900">No homes match these filters</h2>
+              <p className="mt-1.5 text-sm text-stone-600 max-w-sm mx-auto">
+                Try a higher budget, fewer must-have features, or a wider area.
               </p>
-              <button
-                onClick={resetFilters}
-                className="px-4 py-2 bg-terra-600 hover:bg-terra-700 text-white rounded-lg text-xs font-bold transition-colors"
-              >
-                Reset All Filters
+              <button type="button" onClick={resetFilters} className="btn-primary rounded-full mt-5">
+                Clear all filters
               </button>
             </div>
           )}
-
         </div>
 
+        {showMap && (
+          <aside
+            className={`${mobileMap ? 'block' : 'hidden'} lg:block ${
+              layout === 'map' ? 'h-[calc(100vh-12rem)]' : 'h-[calc(100vh-12rem)] lg:sticky lg:top-40'
+            } rounded-2xl overflow-hidden border border-stone-200`}
+          >
+            <ListingsMap
+              properties={loading ? [] : results}
+              activeId={hoveredId}
+              onHover={setHoveredId}
+              onSelect={p => openModal('PROPERTY_DETAILS', { property: p })}
+            />
+          </aside>
+        )}
       </div>
 
+      {/* Mobile list/map switch */}
+      <button
+        type="button"
+        onClick={() => setMobileMap(m => !m)}
+        className="lg:hidden fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-2 px-5 h-11 rounded-full bg-tea-700 text-white text-sm font-semibold shadow-lg active:scale-95 transition-transform"
+      >
+        {mobileMap ? <LayoutGrid className="w-4 h-4" /> : <MapIcon className="w-4 h-4" />}
+        {mobileMap ? 'Show list' : 'Show map'}
+      </button>
+
+      {/* More-filters drawer */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-[70]" role="dialog" aria-modal="true" aria-labelledby="filters-title">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => setDrawerOpen(false)} />
+          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col animate-[slideIn_200ms_ease-out]">
+            <div className="flex items-center justify-between px-6 h-16 border-b border-stone-200">
+              <h2 id="filters-title" className="text-lg font-semibold text-ink-900">Filters</h2>
+              <button type="button" onClick={() => setDrawerOpen(false)} className="p-2 -mr-2 rounded-full hover:bg-stone-100" aria-label="Close filters">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+              <section>
+                <h3 className="text-sm font-semibold text-ink-900 mb-3">Maximum monthly rent</h3>
+                <input
+                  type="range"
+                  min={100000}
+                  max={MAX_PRICE}
+                  step={50000}
+                  value={filters.maxPrice}
+                  onChange={e => set('maxPrice', Number(e.target.value))}
+                  className="w-full accent-tea-600"
+                  aria-valuetext={filters.maxPrice >= MAX_PRICE ? 'Any' : `${filters.maxPrice.toLocaleString()} RWF`}
+                />
+                <p className="mt-1 text-sm font-semibold text-tea-700 tabular-nums">
+                  {filters.maxPrice >= MAX_PRICE ? 'Any price' : `Up to ${filters.maxPrice.toLocaleString()} RWF`}
+                </p>
+              </section>
+
+              {districts.length > 0 && (
+                <section>
+                  <h3 className="text-sm font-semibold text-ink-900 mb-3">District in {filters.selectedProvince}</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {districts.map(d => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => set('selectedDistrict', filters.selectedDistrict === d ? '' : d)}
+                        className={`${chipBase} ${filters.selectedDistrict === d ? chipOn : chipIdle}`}
+                        aria-pressed={filters.selectedDistrict === d}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <section>
+                <h3 className="text-sm font-semibold text-ink-900 mb-3">Essentials</h3>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => set('isFurnished', filters.isFurnished ? undefined : true)} className={`${chipBase} ${filters.isFurnished ? chipOn : chipIdle}`} aria-pressed={!!filters.isFurnished}>
+                    Furnished
+                  </button>
+                  <button type="button" onClick={() => set('hasParking', filters.hasParking ? undefined : true)} className={`${chipBase} ${filters.hasParking ? chipOn : chipIdle}`} aria-pressed={!!filters.hasParking}>
+                    Parking
+                  </button>
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-sm font-semibold text-ink-900 mb-3">Must-have features</h3>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_AMENITY_OPTIONS.map(a => {
+                    const on = filters.selectedAmenities.includes(a);
+                    return (
+                      <button key={a} type="button" onClick={() => toggleAmenity(a)} className={`${chipBase} ${on ? chipOn : chipIdle}`} aria-pressed={on}>
+                        {a}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            </div>
+
+            <div className="px-6 py-4 border-t border-stone-200 flex items-center justify-between gap-3">
+              <button type="button" onClick={resetFilters} className="text-sm font-semibold text-ink-900 underline underline-offset-2">
+                Clear all
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  scrollToResults();
+                }}
+                className="btn-primary rounded-full px-6 inline-flex items-center gap-2"
+              >
+                <ArrowDownWideNarrow className="w-4 h-4" />
+                Show {results.length} {results.length === 1 ? 'home' : 'homes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-

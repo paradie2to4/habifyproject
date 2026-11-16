@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { TAB_PATHS, tabForPath, propertyPath } from '../routes';
 import {
   User,
   Property,
@@ -266,7 +268,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return SEED_MAINTENANCE_TICKETS;
   });
 
-  const [currentTab, setCurrentTab] = useState<ActiveTab>('BROWSE');
+  // The URL is the source of truth for which screen is showing
+  const location = useLocation();
+  const navigate = useNavigate();
+  const currentTab = tabForPath(location.pathname);
+  const setCurrentTab = useCallback((tab: ActiveTab) => {
+    navigate(TAB_PATHS[tab]);
+  }, [navigate]);
   const [filters, setFilters] = useState<FilterState>(INITIAL_FILTERS);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [modalData, setModalData] = useState<any>(null);
@@ -315,7 +323,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
         if (cancelled) return;
         setBackendStatus('online');
-        pushToast('success', `Connected to backend — loaded ${remote.length} live listings`);
       } catch {
         if (!cancelled) {
           setBackendStatus('offline');
@@ -827,6 +834,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [properties, preferences]);
 
   const openModal = (name: string, data?: any) => {
+    // Property details are a real page now, with a shareable URL
+    if (name === 'PROPERTY_DETAILS' && data?.property?.id) {
+      setActiveModal(null);
+      navigate(propertyPath(data.property.id));
+      return;
+    }
     setActiveModal(name);
     setModalData(data || null);
   };

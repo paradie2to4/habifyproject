@@ -1,160 +1,379 @@
 @import "tailwindcss";
 @config "../tailwind.config.ts";
 
+/* ==========================================================================
+   Habify · Tea Hills design system
+   Palette: tea green (brand) · saffron (spark) · ink (text) · stone (neutrals)
+   Type: Bricolage Grotesque (display) + Figtree (interface)
+   Every color utility compiles to var(--color-*); dark mode remaps the vars.
+   ========================================================================== */
+
 @theme {
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "Figtree", ui-sans-serif, sans-serif;
+  --font-mono: "Figtree", ui-sans-serif, system-ui, sans-serif;
 
-  --color-navy-50: #f5f7fb;
-  --color-navy-100: #e8eef8;
-  --color-navy-200: #d4dff1;
-  --color-navy-300: #b3c7e8;
-  --color-navy-400: #8daadd;
-  --color-navy-500: #6b8dd0;
-  --color-navy-600: #5574c1;
-  --color-navy-700: #3d57a6;
-  --color-navy-800: #2d4182;
-  --color-navy-900: #1a2942;
-  --color-navy-950: #0f1a28;
+  --color-tea-50: #EEF5F1;
+  --color-tea-100: #D7E8DF;
+  --color-tea-200: #B3D3C3;
+  --color-tea-300: #84B6A0;
+  --color-tea-400: #57977E;
+  --color-tea-500: #367A62;
+  --color-tea-600: #256950;
+  --color-tea-700: #1F5C45;
+  --color-tea-800: #194A38;
+  --color-tea-900: #13392B;
+  --color-tea-950: #0B241B;
+  --color-saffron-50: #FDF6E7;
+  --color-saffron-100: #FAEAC4;
+  --color-saffron-200: #F4D58F;
+  --color-saffron-300: #EDBF5C;
+  --color-saffron-400: #E5AA3C;
+  --color-saffron-500: #D9982B;
+  --color-saffron-600: #B97A14;
+  --color-saffron-700: #935F10;
+  --color-saffron-800: #6F470E;
+  --color-saffron-900: #4E320B;
+  --color-saffron-950: #342107;
+  --color-ink-50: #F3F5F3;
+  --color-ink-100: #E3E8E5;
+  --color-ink-200: #C8D1CC;
+  --color-ink-300: #A3B0A9;
+  --color-ink-400: #7A8981;
+  --color-ink-500: #5F6B64;
+  --color-ink-600: #4B5650;
+  --color-ink-700: #3A443F;
+  --color-ink-800: #27302B;
+  --color-ink-900: #16201B;
+  --color-ink-950: #0E1411;
+  --color-stone-50: #F7F8F5;
+  --color-stone-100: #EEF1EB;
+  --color-stone-200: #DDE2DA;
+  --color-stone-300: #CBD2C8;
+  --color-stone-400: #B0B8AE;
+  --color-stone-500: #939C92;
+  --color-stone-600: #6A746C;
+  --color-stone-700: #566058;
+  --color-stone-800: #414A43;
+  --color-stone-900: #2D332E;
+  --color-stone-950: #1C211D;
 
-  --color-cream-50: #fefdfb;
-  --color-cream-100: #faf8f5;
-  --color-cream-200: #f5f1ea;
-  --color-cream-300: #ede7dd;
-  --color-cream-400: #e0d5c7;
-  --color-cream-500: #d3c4b0;
-  --color-cream-600: #bfad99;
-  --color-cream-700: #a89680;
-  --color-cream-800: #8d7967;
-  --color-cream-900: #6d5f52;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow-card: 0 1px 2px rgb(22 32 27 / 0.04), 0 4px 16px -6px rgb(22 32 27 / 0.08);
+  --shadow-lift: 0 2px 4px rgb(22 32 27 / 0.05), 0 18px 40px -16px rgb(22 32 27 / 0.22);
+}
 
-  --color-terra-50: #fef6f1;
-  --color-terra-100: #fdebe0;
-  --color-terra-200: #fad6c4;
-  --color-terra-300: #f5b89f;
-  --color-terra-400: #ed957f;
-  --color-terra-500: #e27a63;
-  --color-terra-600: #d46251;
-  --color-terra-700: #b84a3e;
-  --color-terra-800: #963d35;
-  --color-terra-900: #7a342d;
+/* ---------- Dark: its own palette, tuned for a green-black canvas ---------- */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-white: #161E1A;
+  --color-tea-50: #11201A;
+  --color-tea-100: #163026;
+  --color-tea-200: #1D4233;
+  --color-tea-300: #2A5C47;
+  --color-tea-400: #3A7D60;
+  --color-tea-500: #4A9472;
+  --color-tea-600: #55A57F;
+  --color-tea-700: #5FB08A;
+  --color-tea-800: #7CC2A0;
+  --color-tea-900: #A6D7BE;
+  --color-tea-950: #CBEBDB;
+  --color-saffron-50: #2A2110;
+  --color-saffron-100: #382B12;
+  --color-saffron-200: #544016;
+  --color-saffron-300: #E8B04E;
+  --color-saffron-400: #ECBC63;
+  --color-saffron-500: #E8B04E;
+  --color-saffron-600: #E8B04E;
+  --color-saffron-700: #F0C474;
+  --color-saffron-800: #F5D597;
+  --color-saffron-900: #F9E4BA;
+  --color-saffron-950: #FCF1DA;
+  --color-ink-50: #18201C;
+  --color-ink-100: #202925;
+  --color-ink-200: #2C3631;
+  --color-ink-300: #45514A;
+  --color-ink-400: #5F6C65;
+  --color-ink-500: #7D8B83;
+  --color-ink-600: #98A69E;
+  --color-ink-700: #B5C1BA;
+  --color-ink-800: #CFD8D2;
+  --color-ink-900: #E8EEE9;
+  --color-ink-950: #F5F8F6;
+  --color-stone-50: #0E1411;
+  --color-stone-100: #18201C;
+  --color-stone-200: #25302A;
+  --color-stone-300: #323E37;
+  --color-stone-400: #44514A;
+  --color-stone-500: #64716A;
+  --color-stone-600: #93A199;
+  --color-stone-700: #A8B4AD;
+  --color-stone-800: #C2CCC6;
+  --color-stone-900: #DAE1DC;
+  --color-stone-950: #EDF1EE;
+  --color-red-50: #2B1714;
+  --color-red-200: #5C2A22;
+  --color-red-700: #F08A7E;
+  --color-red-800: #F4A79D;
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 6px 20px -8px rgb(0 0 0 / 0.5);
+  --shadow-lift: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 22px 48px -18px rgb(0 0 0 / 0.7);
+}
 
-  --color-sage-50: #f7faf6;
-  --color-sage-100: #eef3eb;
-  --color-sage-200: #dce5d6;
-  --color-sage-300: #c4d5bc;
-  --color-sage-400: #a8c59d;
-  --color-sage-500: #8fb080;
-  --color-sage-600: #739966;
-  --color-sage-700: #5d7d53;
-  --color-sage-800: #4a6542;
-  --color-sage-900: #3a5033;
+/* Areas over photos (hero, image overlays, lightbox) keep the light palette
+   so white text stays white in both themes. */
+:root[data-theme="dark"] body {
+  background-image:
+    radial-gradient(1100px 560px at -5% -10%, color-mix(in srgb, var(--color-tea-200) 55%, transparent), transparent 70%),
+    radial-gradient(900px 480px at 105% -8%, color-mix(in srgb, var(--color-saffron-200) 45%, transparent), transparent 70%);
+}
+
+:root[data-theme="dark"] .palette-light {
+  --color-white: #FFFFFF;
+  --color-tea-50: #EEF5F1;
+  --color-tea-100: #D7E8DF;
+  --color-tea-200: #B3D3C3;
+  --color-tea-300: #84B6A0;
+  --color-tea-400: #57977E;
+  --color-tea-500: #367A62;
+  --color-tea-600: #256950;
+  --color-tea-700: #1F5C45;
+  --color-tea-800: #194A38;
+  --color-tea-900: #13392B;
+  --color-tea-950: #0B241B;
+  --color-saffron-50: #FDF6E7;
+  --color-saffron-100: #FAEAC4;
+  --color-saffron-200: #F4D58F;
+  --color-saffron-300: #EDBF5C;
+  --color-saffron-400: #E5AA3C;
+  --color-saffron-500: #D9982B;
+  --color-saffron-600: #B97A14;
+  --color-saffron-700: #935F10;
+  --color-saffron-800: #6F470E;
+  --color-saffron-900: #4E320B;
+  --color-saffron-950: #342107;
+  --color-ink-50: #F3F5F3;
+  --color-ink-100: #E3E8E5;
+  --color-ink-200: #C8D1CC;
+  --color-ink-300: #A3B0A9;
+  --color-ink-400: #7A8981;
+  --color-ink-500: #5F6B64;
+  --color-ink-600: #4B5650;
+  --color-ink-700: #3A443F;
+  --color-ink-800: #27302B;
+  --color-ink-900: #16201B;
+  --color-ink-950: #0E1411;
+  --color-stone-50: #F7F8F5;
+  --color-stone-100: #EEF1EB;
+  --color-stone-200: #DDE2DA;
+  --color-stone-300: #CBD2C8;
+  --color-stone-400: #B0B8AE;
+  --color-stone-500: #939C92;
+  --color-stone-600: #6A746C;
+  --color-stone-700: #566058;
+  --color-stone-800: #414A43;
+  --color-stone-900: #2D332E;
+  --color-stone-950: #1C211D;
 }
 
 @layer base {
   html {
-    @apply scroll-smooth;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    @apply bg-cream-50 text-navy-900 font-sans;
+    @apply bg-stone-50 text-ink-900 font-sans;
+    /* Morning light over the hills: a tea glow and a saffron glow at the top */
+    /* Light: one faint tea wash at the top, nothing else */
+    background-image: radial-gradient(1400px 420px at 50% -12%, color-mix(in srgb, var(--color-tea-100) 70%, transparent), transparent 75%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
+  /* Headings inherit color so they stay readable inside tinted panels */
   h1, h2, h3, h4, h5, h6 {
-    @apply text-navy-900 font-semibold;
+    @apply font-semibold;
+    letter-spacing: -0.01em;
+  }
+
+  .font-display {
+    letter-spacing: -0.025em;
+    font-optical-sizing: auto;
+  }
+
+  .font-mono, .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 
   a {
-    @apply text-terra-700 hover:text-terra-800 transition-colors;
+    @apply text-tea-700 hover:text-tea-800 transition-colors;
   }
 
   ::selection {
-    @apply bg-navy-900 text-white;
+    background: var(--color-saffron-200);
+    color: var(--color-ink-900);
   }
 
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-navy-900;
+    outline: 2px solid var(--color-tea-600);
+    outline-offset: 2px;
+    border-radius: 6px;
   }
 
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: #d3c4b0;
-    border-radius: 4px;
+    background: var(--color-stone-300);
+    border-radius: 999px;
+    border: 3px solid var(--color-stone-50);
   }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #bfad99;
-  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-stone-400); }
 }
 
 @layer components {
-  .btn-primary {
-    @apply px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-navy-900 hover:bg-navy-800 transition-colors active:bg-navy-950 disabled:opacity-50 disabled:cursor-not-allowed;
+  /* Buttons: one filled primary per view, everything else quieter */
+  .btn-primary, .btn-accent, .btn-secondary, .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 h-10 rounded-xl text-sm font-semibold
+      transition-[background-color,border-color,color,transform] duration-200
+      active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
   }
-
+  .btn-primary, .btn-accent {
+    @apply bg-tea-700 text-white hover:bg-tea-800;
+  }
   .btn-secondary {
-    @apply px-4 py-2.5 rounded-lg text-sm font-semibold text-navy-900 bg-cream-100 hover:bg-cream-200 transition-colors border border-cream-300 active:bg-cream-300 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-white text-ink-900 border border-stone-300 hover:border-ink-400 hover:bg-stone-50;
   }
-
-  .btn-accent {
-    @apply px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-terra-600 hover:bg-terra-700 transition-colors active:bg-terra-800 disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-
   .btn-ghost {
-    @apply px-4 py-2.5 rounded-lg text-sm font-semibold text-navy-900 hover:bg-cream-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply text-ink-800 hover:bg-stone-100;
   }
 
   .input-base {
-    @apply px-4 py-2.5 rounded-lg text-sm border border-cream-300 bg-white text-navy-900 placeholder:text-cream-500 focus:outline-none focus:ring-2 focus:ring-navy-900 focus:ring-offset-2 focus:ring-offset-cream-50 transition-all;
+    @apply w-full h-11 px-4 rounded-xl text-sm bg-white text-ink-900 border border-stone-300
+      placeholder:text-stone-500 transition-[border-color,box-shadow] duration-200
+      hover:border-stone-400 focus:outline-none focus:border-tea-600 focus:ring-4 focus:ring-tea-600/15;
   }
 
-  .card {
-    @apply bg-white rounded-xl border border-cream-200;
+  .card, .card-lg {
+    @apply bg-white rounded-2xl border border-stone-200;
+    box-shadow: var(--shadow-card);
   }
 
-  .card-lg {
-    @apply bg-white rounded-xl border border-cream-200;
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-tea-700;
   }
 
-  .text-display {
-    @apply font-display text-4xl sm:text-5xl font-semibold tracking-tight text-navy-900;
-  }
+  .text-display { @apply font-display text-4xl sm:text-5xl font-bold text-ink-900; }
+  .text-heading { @apply font-display text-2xl sm:text-3xl font-bold text-ink-900; }
+  .text-subheading { @apply text-xl font-semibold text-ink-900; }
+  .text-section { @apply text-lg font-semibold text-ink-900; }
+  .text-label { @apply text-xs font-semibold text-ink-700; }
+  .text-meta { @apply text-sm text-stone-600; }
+  .text-caption { @apply text-xs text-stone-600; }
 
-  .text-heading {
-    @apply font-display text-2xl sm:text-3xl font-semibold text-navy-900;
+  /* Signature: tea-terrace contour lines */
+  .topo {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='240' viewBox='0 0 480 240'%3E%3Cg fill='none' stroke='%23FFFFFF' stroke-opacity='.16' stroke-width='1.2'%3E%3Cpath d='M-20 200 Q120 150 240 185 T500 165'/%3E%3Cpath d='M-20 172 Q120 122 240 157 T500 137'/%3E%3Cpath d='M-20 144 Q120 94 240 129 T500 109'/%3E%3Cpath d='M-20 116 Q120 66 240 101 T500 81'/%3E%3Cpath d='M-20 88 Q120 38 240 73 T500 53'/%3E%3Cpath d='M-20 60 Q120 10 240 45 T500 25'/%3E%3Cpath d='M-20 228 Q120 178 240 213 T500 193'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 480px 240px;
   }
+  /* Contour pattern on a separate layer so content is never filtered */
+  .topo-ink {
+    position: relative;
+    isolation: isolate;
+    --topo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='240' viewBox='0 0 480 240'%3E%3Cg fill='none' stroke='%231F5C45' stroke-opacity='.10' stroke-width='1.2'%3E%3Cpath d='M-20 200 Q120 150 240 185 T500 165'/%3E%3Cpath d='M-20 172 Q120 122 240 157 T500 137'/%3E%3Cpath d='M-20 144 Q120 94 240 129 T500 109'/%3E%3Cpath d='M-20 116 Q120 66 240 101 T500 81'/%3E%3Cpath d='M-20 88 Q120 38 240 73 T500 53'/%3E%3Cpath d='M-20 60 Q120 10 240 45 T500 25'/%3E%3Cpath d='M-20 228 Q120 178 240 213 T500 193'/%3E%3C/g%3E%3C/svg%3E");
+  }
+  .topo-ink::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: var(--topo);
+    background-size: 480px 240px;
+  }
+  :root[data-theme="dark"] .topo-ink { --topo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='240' viewBox='0 0 480 240'%3E%3Cg fill='none' stroke='%237CC2A0' stroke-opacity='.09' stroke-width='1.2'%3E%3Cpath d='M-20 200 Q120 150 240 185 T500 165'/%3E%3Cpath d='M-20 172 Q120 122 240 157 T500 137'/%3E%3Cpath d='M-20 144 Q120 94 240 129 T500 109'/%3E%3Cpath d='M-20 116 Q120 66 240 101 T500 81'/%3E%3Cpath d='M-20 88 Q120 38 240 73 T500 53'/%3E%3Cpath d='M-20 60 Q120 10 240 45 T500 25'/%3E%3Cpath d='M-20 228 Q120 178 240 213 T500 193'/%3E%3C/g%3E%3C/svg%3E"); }
+}
 
-  .text-subheading {
-    @apply text-xl font-semibold text-navy-900;
-  }
+/* ---------- Photos and maps in dark mode ---------- */
+:root[data-theme="dark"] img:not(.no-dim) { filter: brightness(0.9) saturate(0.95); }
+:root[data-theme="dark"] .leaflet-tile-pane { filter: brightness(0.72) contrast(1.08) saturate(0.7) hue-rotate(-8deg); }
+:root[data-theme="dark"] .leaflet-bar a,
+:root[data-theme="dark"] .leaflet-control-attribution {
+  background: var(--color-white) !important;
+  color: var(--color-ink-700) !important;
+  border-color: var(--color-stone-200) !important;
+}
 
-  .text-section {
-    @apply text-lg font-semibold text-navy-900;
-  }
+/* Smooth theme switch without animating every hover */
+:root.theme-transition, :root.theme-transition * {
+  transition: background-color 250ms ease, border-color 250ms ease, color 250ms ease, fill 250ms ease !important;
+}
 
-  .text-label {
-    @apply text-xs font-semibold text-navy-800 uppercase tracking-wide;
-  }
+/* ---------- Loading skeletons ---------- */
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-stone-200);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-white) 50%, transparent), transparent);
+  animation: shimmer 1.4s infinite;
+}
 
-  .text-meta {
-    @apply text-sm text-cream-600;
-  }
+/* ---------- Map price pins ---------- */
+.price-marker {
+  background: var(--color-white);
+  color: var(--color-ink-900);
+  border: 1px solid var(--color-stone-300);
+  border-radius: 9999px;
+  padding: 4px 10px;
+  font: 600 12px/1.2 "Figtree", sans-serif;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.16);
+  transform: translate(-50%, -50%);
+  display: inline-block;
+  transition: transform 180ms var(--ease-out-soft), background-color 180ms ease, color 180ms ease;
+}
+.price-marker.is-active {
+  background: var(--color-tea-700);
+  color: var(--color-white);
+  border-color: var(--color-tea-700);
+  transform: translate(-50%, -50%) scale(1.12);
+}
+.leaflet-div-icon.price-marker-wrap { background: transparent; border: 0; }
 
-  .text-caption {
-    @apply text-xs text-cream-500;
-  }
+/* ---------- Utilities ---------- */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
 
-  .skeleton {
-    @apply bg-cream-200 animate-pulse rounded-md;
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+.animate-page { animation: fadeUp 420ms var(--ease-out-soft) both; }
+.animate-pop { animation: popIn 260ms var(--ease-out-soft) both; }
+
+/* Lift the chat bubble above page-level bottom bars on small screens */
+@media (max-width: 1023px) {
+  body[data-bottom-bar] .chat-fab { bottom: 5.5rem; transition: bottom 200ms ease; }
+}
+@media (max-width: 767px) {
+  .chat-fab { bottom: 5.5rem !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
   }
+  html { scroll-behavior: auto; }
 }
