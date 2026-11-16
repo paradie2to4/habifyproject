@@ -53,6 +53,12 @@ public class ViewingRequest {
     @Column(nullable = false)
     private String status = "PENDING"; // PENDING, CONFIRMED, REJECTED, COMPLETED
 
+    @Column(name = "landlord_note", columnDefinition = "TEXT")
+    private String landlordNote;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -102,6 +108,12 @@ public class ViewingRequest {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getLandlordNote() { return landlordNote; }
+    public void setLandlordNote(String landlordNote) { this.landlordNote = landlordNote; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

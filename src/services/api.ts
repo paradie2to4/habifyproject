@@ -1,4 +1,15 @@
-import { Property, PropertyType, Role, User, ViewingRequest, Inquiry } from '../types';
+import {
+  Property,
+  PropertyType,
+  Role,
+  User,
+  ViewingRequest,
+  ViewingStatus,
+  Inquiry,
+  TenantPreferences,
+  PropertyReport,
+  ReportStatus
+} from '../types';
 import { RWANDA_LOCATIONS_DATA } from '../data/rwandaLocations';
 import { normalizeImageList } from '../utils/images';
 
@@ -72,6 +83,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       } catch {
         /* ignore */
       }
+    }
+    if (res.status === 401 && token) {
+      setAuthToken(null);
+      window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
     }
     throw new ApiError(message, res.status);
   }
@@ -319,8 +334,8 @@ export async function registerApi(payload: {
   return { token: data.token, user: mapBackendUser(data.user) };
 }
 
-export async function createViewingRequestApi(req: Omit<ViewingRequest, 'id' | 'createdAt' | 'updatedAt' | 'status'>): Promise<void> {
-  await request('/viewing-requests', {
+export async function createViewingRequestApi(req: Omit<ViewingRequest, 'id' | 'createdAt' | 'updatedAt' | 'status'>): Promise<ViewingRequest> {
+  return mapViewing(await request<BackendViewing>('/viewing-requests', {
     method: 'POST',
     body: JSON.stringify({
       propertyId: req.propertyId,
@@ -338,11 +353,11 @@ export async function createViewingRequestApi(req: Omit<ViewingRequest, 'id' | '
       notes: req.notes,
       status: 'PENDING'
     })
-  });
+  }));
 }
 
-export async function createInquiryApi(inq: Omit<Inquiry, 'id' | 'createdAt' | 'isRead'>): Promise<void> {
-  await request('/inquiries', {
+export async function createInquiryApi(inq: Omit<Inquiry, 'id' | 'createdAt' | 'isRead'>): Promise<Inquiry> {
+  return mapInquiry(await request<BackendInquiry>('/inquiries', {
     method: 'POST',
     body: JSON.stringify({
       propertyId: inq.propertyId,
@@ -358,5 +373,198 @@ export async function createInquiryApi(inq: Omit<Inquiry, 'id' | 'createdAt' | '
       message: inq.message,
       status: 'UNREAD'
     })
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Session
+// ---------------------------------------------------------------------------
+
+/** Fired when the API rejects our token (expired / revoked). AppContext signs the user out. */
+export const UNAUTHORIZED_EVENT = 'habify:unauthorized';
+
+export async function fetchMe(): Promise<User> {
+  return mapBackendUser(await request<BackendUser>('/auth/me'));
+}
+
+// ---------------------------------------------------------------------------
+// Viewing requests
+// ---------------------------------------------------------------------------
+
+interface BackendViewing extends Omit<ViewingRequest, 'createdAt' | 'updatedAt' | 'status'> {
+  status?: string;
+  createdAt?: string | number[];
+  updatedAt?: string | number[];
+}
+
+function mapViewing(raw: BackendViewing): ViewingRequest {
+  const status = (raw.status || 'PENDING').toUpperCase();
+  return {
+    ...raw,
+    propertyRent: num(raw.propertyRent),
+    propertyImage: raw.propertyImage || '',
+    landlordNote: raw.landlordNote || undefined,
+    status: (status === 'CONFIRMED' ? 'APPROVED' : status) as ViewingStatus,
+    createdAt: toIso(raw.createdAt),
+    updatedAt: toIso(raw.updatedAt ?? raw.createdAt)
+  };
+}
+
+export async function fetchViewingsApi(user: User): Promise<ViewingRequest[]> {
+  const scope = user.role === 'LANDLORD' ? 'landlord' : 'tenant';
+  const data = await request<BackendViewing[]>(`/viewing-requests/${scope}/${user.id}`);
+  return (data || []).map(mapViewing);
+}
+
+export async function updateViewingStatusApi(id: string, status: ViewingStatus, landlordNote?: string): Promise<ViewingRequest> {
+  return mapViewing(await request<BackendViewing>(`/viewing-requests/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, landlordNote })
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Inquiries
+// ---------------------------------------------------------------------------
+
+interface BackendInquiry extends Omit<Inquiry, 'createdAt' | 'repliedAt' | 'isRead'> {
+  status?: string;
+  createdAt?: string | number[];
+  repliedAt?: string | number[] | null;
+}
+
+function mapInquiry(raw: BackendInquiry): Inquiry {
+  return {
+    ...raw,
+    propertyImage: raw.propertyImage || '',
+    propertyLocation: raw.propertyLocation || '',
+    landlordName: raw.landlordName || '',
+    reply: raw.reply || undefined,
+    isRead: (raw.status || 'UNREAD').toUpperCase() !== 'UNREAD',
+    createdAt: toIso(raw.createdAt),
+    repliedAt: raw.repliedAt ? toIso(raw.repliedAt) : undefined
+  };
+}
+
+export async function fetchInquiriesApi(user: User): Promise<Inquiry[]> {
+  const scope = user.role === 'LANDLORD' ? 'landlord' : 'tenant';
+  const data = await request<BackendInquiry[]>(`/inquiries/${scope}/${user.id}`);
+  return (data || []).map(mapInquiry);
+}
+
+export async function replyInquiryApi(id: string, reply: string): Promise<Inquiry> {
+  return mapInquiry(await request<BackendInquiry>(`/inquiries/${id}/reply`, {
+    method: 'PATCH',
+    body: JSON.stringify({ reply })
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Favorites (responses are the full list of saved property ids)
+// ---------------------------------------------------------------------------
+
+export function fetchFavoritesApi(): Promise<string[]> {
+  return request<string[]>('/favorites');
+}
+
+export function setFavoriteApi(propertyId: string, saved: boolean): Promise<string[]> {
+  return request<string[]>(`/favorites/${encodeURIComponent(propertyId)}`, { method: saved ? 'PUT' : 'DELETE' });
+}
+
+// ---------------------------------------------------------------------------
+// Tenant preferences
+// ---------------------------------------------------------------------------
+
+interface BackendPreference {
+  id?: string;
+  maxBudget?: number;
+  monthlyIncome?: number;
+  minBedrooms?: number;
+  furnishedRequired?: boolean;
+  parkingRequired?: boolean;
+  preferredLocations?: string;
+  preferredPropertyTypes?: string;
+  preferredAmenities?: string;
+}
+
+/** Returns null when the tenant has not saved preferences yet. */
+export async function fetchPreferencesApi(userId: string): Promise<Partial<TenantPreferences> | null> {
+  try {
+    const raw = await request<BackendPreference>(`/preferences/tenant/${userId}`);
+    return {
+      id: raw.id,
+      maxBudget: num(raw.maxBudget),
+      monthlyIncome: num(raw.monthlyIncome),
+      minBedrooms: num(raw.minBedrooms, 1),
+      furnishedRequired: bool(raw.furnishedRequired),
+      parkingRequired: bool(raw.parkingRequired),
+      preferredLocations: splitCsv(raw.preferredLocations),
+      preferredPropertyTypes: splitCsv(raw.preferredPropertyTypes) as PropertyType[],
+      preferredAmenities: splitCsv(raw.preferredAmenities)
+    };
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+}
+
+export async function savePreferencesApi(userId: string, prefs: TenantPreferences): Promise<void> {
+  await request(`/preferences/tenant/${userId}`, {
+    method: 'POST',
+    body: JSON.stringify({
+      maxBudget: prefs.maxBudget,
+      monthlyIncome: prefs.monthlyIncome,
+      minBedrooms: prefs.minBedrooms,
+      furnishedRequired: prefs.furnishedRequired,
+      parkingRequired: prefs.parkingRequired,
+      preferredLocations: prefs.preferredLocations.join(','),
+      preferredPropertyTypes: prefs.preferredPropertyTypes.join(','),
+      preferredAmenities: prefs.preferredAmenities.join(',')
+    })
   });
+}
+
+// ---------------------------------------------------------------------------
+// Reports & admin
+// ---------------------------------------------------------------------------
+
+interface BackendReport extends Omit<PropertyReport, 'createdAt' | 'status' | 'reason'> {
+  reason?: string;
+  status?: string;
+  createdAt?: string | number[];
+}
+
+function mapReport(raw: BackendReport): PropertyReport {
+  const status = (raw.status || 'PENDING').toUpperCase();
+  return {
+    ...raw,
+    reason: (raw.reason || 'OTHER') as PropertyReport['reason'],
+    status: (status === 'INVESTIGATING' ? 'UNDER_REVIEW' : status) as ReportStatus,
+    adminNotes: raw.adminNotes || undefined,
+    createdAt: toIso(raw.createdAt)
+  };
+}
+
+export async function submitReportApi(report: Omit<PropertyReport, 'id' | 'createdAt' | 'status'>): Promise<PropertyReport> {
+  return mapReport(await request<BackendReport>('/reports', { method: 'POST', body: JSON.stringify(report) }));
+}
+
+export async function fetchReportsApi(): Promise<PropertyReport[]> {
+  return ((await request<BackendReport[]>('/admin/reports')) || []).map(mapReport);
+}
+
+export async function updateReportStatusApi(id: string, status: ReportStatus, adminNotes?: string): Promise<PropertyReport> {
+  return mapReport(await request<BackendReport>(`/admin/reports/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, adminNotes })
+  }));
+}
+
+export async function fetchAllUsersApi(): Promise<User[]> {
+  return ((await request<BackendUser[]>('/admin/users')) || []).map(mapBackendUser);
+}
+
+/** Landlords also see their own unavailable listings. */
+export async function fetchLandlordPropertiesApi(landlordId: string): Promise<Property[]> {
+  return ((await request<BackendProperty[]>(`/properties/landlord/${landlordId}`)) || []).map(mapBackendProperty);
 }

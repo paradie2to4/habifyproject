@@ -9,13 +9,13 @@ import com.smartrental.service.SmartMatchingService;
 import com.smartrental.service.TenantPreferenceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import com.smartrental.security.CurrentUser;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/recommendations")
-@CrossOrigin(origins = "*")
 public class SmartMatchingController {
 
     @Autowired
@@ -29,6 +29,7 @@ public class SmartMatchingController {
 
     @GetMapping("/tenant/{tenantId}")
     public ResponseEntity<List<PropertyRecommendationDto>> getTenantRecommendations(@PathVariable String tenantId) {
+        CurrentUser.requireSelfOrAdmin(tenantId);
         return ResponseEntity.ok(matchingService.getRecommendationsForTenant(tenantId));
     }
 

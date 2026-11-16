@@ -16,7 +16,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin(origins = "*")
 public class AdminController {
 
     @Autowired
@@ -59,6 +58,9 @@ public class AdminController {
     @PatchMapping("/users/{id}/toggle-status")
     public ResponseEntity<User> toggleUserStatus(@PathVariable String id) {
         return userRepository.findById(id).map(user -> {
+            if (com.smartrental.security.CurrentUser.get().id().equals(user.getId())) {
+                throw com.smartrental.exception.ApiException.badRequest("You cannot deactivate your own account");
+            }
             user.setIsActive(!Boolean.TRUE.equals(user.getIsActive()));
             return ResponseEntity.ok(userRepository.save(user));
         }).orElse(ResponseEntity.notFound().build());
@@ -75,7 +77,8 @@ public class AdminController {
             @RequestBody Map<String, String> statusBody
     ) {
         return reportRepository.findById(id).map(rep -> {
-            rep.setStatus(statusBody.get("status"));
+            if (statusBody.get("status") != null) rep.setStatus(statusBody.get("status").trim().toUpperCase());
+            if (statusBody.get("adminNotes") != null) rep.setAdminNotes(statusBody.get("adminNotes"));
             return ResponseEntity.ok(reportRepository.save(rep));
         }).orElse(ResponseEntity.notFound().build());
     }

@@ -4,76 +4,100 @@ import com.smartrental.dto.AuthResponseDto;
 import com.smartrental.dto.LoginRequestDto;
 import com.smartrental.dto.RegisterRequestDto;
 import com.smartrental.entity.User;
+import com.smartrental.exception.ApiException;
 import com.smartrental.repository.UserRepository;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import com.smartrental.security.JwtService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.time.LocalDateTime;
-import java.util.Date;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
-    @Value("${jwt.secret:9a618cf387d2a22f61b00d41a700ece838865fae612880d879fb9e6a0a90171e}")
-    private String jwtSecret;
+    /** Hash written by older builds that never stored real passwords. */
+    public static final String LEGACY_PLACEHOLDER_HASH = "$2a$12$demo_bcrypt_hash_placeholder";
+    private static final Set<String> SELF_SERVICE_ROLES = Set.of("TENANT", "LANDLORD");
+    private static final int MIN_PASSWORD_LENGTH = 8;
 
-    @Value("${jwt.expiration:86400000}")
-    private long jwtExpiration;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+    }
 
     public AuthResponseDto login(LoginRequestDto req) {
+        if (req.getEmail() == null || req.getPassword() == null) {
+            throw ApiException.badRequest("Email and password are required");
+        }
         User user = userRepository.findByEmail(req.getEmail().trim().toLowerCase())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(AuthService::invalidCredentials);
 
-        // Basic verification for demo/interview prototype (in production BCryptPasswordEncoder is used)
-        if (!user.getIsActive()) {
-            throw new RuntimeException("Account is deactivated. Contact platform administrator.");
+        if (LEGACY_PLACEHOLDER_HASH.equals(user.getPasswordHash())) {
+            // Accounts created before passwords were stored: the first successful login sets the password.
+            log.info("Setting first password for legacy account {}", user.getId());
+            user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
+            userRepository.save(user);
+        } else if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
+            throw invalidCredentials();
         }
 
-        String token = generateJwtToken(user);
-        return new AuthResponseDto(token, user);
+        if (Boolean.FALSE.equals(user.getIsActive())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Account is deactivated. Contact platform administrator.");
+        }
+
+        return new AuthResponseDto(jwtService.generateToken(user), user);
     }
 
     public AuthResponseDto register(RegisterRequestDto req) {
-        if (userRepository.existsByEmail(req.getEmail().trim().toLowerCase())) {
-            throw new RuntimeException("An account with this email already exists.");
+        if (req.getEmail() == null || !req.getEmail().contains("@")) {
+            throw ApiException.badRequest("A valid email address is required");
+        }
+        if (req.getFullName() == null || req.getFullName().isBlank()) {
+            throw ApiException.badRequest("Full name is required");
+        }
+        if (req.getPassword() == null || req.getPassword().length() < MIN_PASSWORD_LENGTH) {
+            throw ApiException.badRequest("Password must be at least " + MIN_PASSWORD_LENGTH + " characters");
+        }
+        String email = req.getEmail().trim().toLowerCase();
+        if (userRepository.existsByEmail(email)) {
+            throw new ApiException(HttpStatus.CONFLICT, "An account with this email already exists.");
+        }
+        String role = req.getRole() != null ? req.getRole().trim().toUpperCase() : "TENANT";
+        if (!SELF_SERVICE_ROLES.contains(role)) {
+            throw ApiException.badRequest("You can only register as a tenant or landlord");
         }
 
         User user = new User();
         user.setId("usr-" + UUID.randomUUID().toString().substring(0, 8));
-        user.setEmail(req.getEmail().trim().toLowerCase());
-        user.setFullName(req.getFullName());
+        user.setEmail(email);
+        user.setFullName(req.getFullName().trim());
         user.setPhoneNumber(req.getPhoneNumber());
-        user.setRole(req.getRole() != null ? req.getRole().toUpperCase() : "TENANT");
-        user.setPasswordHash("$2a$12$demo_bcrypt_hash_placeholder");
-        user.setAvatarUrl("https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80");
+        user.setRole(role);
+        user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
         user.setIsActive(true);
         user.setCreatedAt(LocalDateTime.now());
 
         User saved = userRepository.save(user);
-        String token = generateJwtToken(saved);
-        return new AuthResponseDto(token, saved);
+        return new AuthResponseDto(jwtService.generateToken(saved), saved);
     }
 
-    public String generateJwtToken(User user) {
-        Key key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-        return Jwts.builder()
-                .setSubject(user.getId())
-                .claim("email", user.getEmail())
-                .claim("role", user.getRole())
-                .claim("name", user.getFullName())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
+    public User getUser(String id) {
+        return userRepository.findById(id).orElseThrow(() -> ApiException.notFound("User"));
+    }
+
+    private static ApiException invalidCredentials() {
+        return new ApiException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
     }
 }

@@ -76,6 +76,8 @@ CREATE TABLE IF NOT EXISTS viewing_requests (
     requested_time_slot VARCHAR(50) NOT NULL,
     notes TEXT,
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    landlord_note TEXT,
+    updated_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -93,6 +95,8 @@ CREATE TABLE IF NOT EXISTS inquiries (
     subject VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'UNREAD',
+    reply TEXT,
+    replied_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -113,5 +117,13 @@ CREATE TABLE IF NOT EXISTS property_reports (
     reason VARCHAR(100) NOT NULL,
     details TEXT NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    admin_notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Columns added after the first deployment (safe to re-run)
+ALTER TABLE viewing_requests ADD COLUMN IF NOT EXISTS landlord_note TEXT;
+ALTER TABLE viewing_requests ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;
+ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS reply TEXT;
+ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS replied_at TIMESTAMP;
+ALTER TABLE property_reports ADD COLUMN IF NOT EXISTS admin_notes TEXT;

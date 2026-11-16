@@ -68,10 +68,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             finish(user, `Welcome back, ${user.fullName.split(' ')[0]}.`);
             return;
           } catch (err) {
-            if (loginWithSeed()) {
-              addToast('info', 'Signed in with local demo account (API login failed).');
-              return;
-            }
+            // Never fall back to a fake local account while the API is up: it would have no token.
             setError(err instanceof Error ? err.message : 'Invalid email or password.');
             return;
           }

@@ -33,6 +33,11 @@ public class PropertyService {
         return prop;
     }
 
+    /** Lookup without bumping the view counter. */
+    public Optional<Property> findById(String id) {
+        return propertyRepository.findById(id);
+    }
+
     public List<Property> getPropertiesByLandlord(String landlordId) {
         return propertyRepository.findByLandlordId(landlordId);
     }
@@ -65,6 +70,8 @@ public class PropertyService {
             existing.setFeatured(updated.getFeatured());
             existing.setAmenities(updated.getAmenities());
             existing.setImages(updated.getImages());
+            if (updated.getLatitude() != null) existing.setLatitude(updated.getLatitude());
+            if (updated.getLongitude() != null) existing.setLongitude(updated.getLongitude());
             return propertyRepository.save(existing);
         }).orElseThrow(() -> new RuntimeException("Property not found with id: " + id));
     }

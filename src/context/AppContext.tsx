@@ -38,7 +38,23 @@ import {
   deletePropertyApi,
   createViewingRequestApi,
   createInquiryApi,
-  setAuthToken
+  setAuthToken,
+  getAuthToken,
+  fetchMe,
+  fetchViewingsApi,
+  updateViewingStatusApi,
+  fetchInquiriesApi,
+  replyInquiryApi,
+  fetchFavoritesApi,
+  setFavoriteApi,
+  fetchPreferencesApi,
+  savePreferencesApi,
+  submitReportApi,
+  fetchReportsApi,
+  updateReportStatusApi,
+  fetchAllUsersApi,
+  fetchLandlordPropertiesApi,
+  UNAUTHORIZED_EVENT
 } from '../services/api';
 import { dashboardForRole } from '../utils/roles';
 import { normalizeImageList } from '../utils/images';
@@ -58,6 +74,10 @@ interface AppContextType {
 
   // Backend connectivity
   backendStatus: BackendStatus;
+  /** True while user-scoped data is being loaded from the API. */
+  syncing: boolean;
+  /** Re-fetch everything for the signed-in user from the API. */
+  refreshFromServer: () => Promise<void>;
 
   // Tenant Preferences
   preferences: TenantPreferences;
@@ -271,7 +291,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       if (!online) {
         setBackendStatus('offline');
-        // Restore the rich local catalog if a previous live session left a thin API snapshot
+        // Demo mode: restore the rich local catalog if a previous live session left an API snapshot
         setProperties(prev => (prev.length > 0 && prev.length < 8 ? SEED_PROPERTIES : prev));
         return;
       }
@@ -279,9 +299,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       try {
         const remote = await fetchProperties();
         if (cancelled) return;
-        if (remote.length > 0) {
-          setProperties(remote);
+        // Live mode: the API is the single source of truth — never mix in demo listings
+        setProperties(remote);
+
+        // Restore the session only if the stored token is still valid
+        if (getAuthToken()) {
+          try {
+            const me = await fetchMe();
+            if (!cancelled) setCurrentUser(me);
+          } catch {
+            if (!cancelled) setCurrentUser(null);
+          }
+        } else {
+          setCurrentUser(null); // a demo user without a token cannot act against the API
         }
+        if (cancelled) return;
         setBackendStatus('online');
         pushToast('success', `Connected to backend — loaded ${remote.length} live listings`);
       } catch {
@@ -297,6 +329,81 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   }, []);
 
+  const isOnline = backendStatus === 'online';
+  /** Signed in against the real API (as opposed to local demo mode). */
+  const isLive = isOnline && !!currentUser && !!getAuthToken();
+  const [syncing, setSyncing] = useState(false);
+
+  const describeError = (err: unknown) => (err instanceof Error ? err.message : 'Unexpected error');
+
+  /** Load everything that belongs to the signed-in user from the API. */
+  const refreshFromServer = async () => {
+    if (!isOnline) return;
+    const user = currentUser;
+    if (!user || !getAuthToken()) {
+      setViewings([]);
+      setInquiries([]);
+      setFavorites([]);
+      setReports([]);
+      return;
+    }
+    setSyncing(true);
+    try {
+      const [remoteViewings, remoteInquiries, remoteFavorites] = await Promise.all([
+        user.role === 'ADMIN' ? Promise.resolve([]) : fetchViewingsApi(user),
+        user.role === 'ADMIN' ? Promise.resolve([]) : fetchInquiriesApi(user),
+        fetchFavoritesApi()
+      ]);
+      setViewings(remoteViewings);
+      setInquiries(remoteInquiries);
+      setFavorites(remoteFavorites);
+
+      if (user.role === 'TENANT') {
+        const prefs = await fetchPreferencesApi(user.id);
+        if (prefs) setPreferences(prev => ({ ...prev, ...prefs }));
+      }
+      if (user.role === 'LANDLORD') {
+        // Public listing feed hides unavailable units; landlords need all of their own
+        const own = await fetchLandlordPropertiesApi(user.id);
+        setProperties(prev => [...own, ...prev.filter(p => p.landlordId !== user.id)]);
+      }
+      if (user.role === 'ADMIN') {
+        const [remoteReports, users] = await Promise.all([fetchReportsApi(), fetchAllUsersApi()]);
+        setReports(remoteReports);
+        setAllUsers(users);
+      }
+    } catch (err) {
+      addToast('error', `Could not load your data: ${describeError(err)}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    void refreshFromServer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline, currentUser?.id]);
+
+  // The API rejected our token (expired / revoked): sign out cleanly
+  useEffect(() => {
+    const onUnauthorized = () => {
+      setCurrentUser(null);
+      setCurrentTab('LOGIN');
+      addToast('warning', 'Your session has expired — please sign in again.');
+    };
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** In live mode, user actions need a signed-in account. Returns false (and nudges) if not. */
+  const requireLiveSession = (action: string) => {
+    if (!isOnline || isLive) return true;
+    addToast('info', `Please sign in to ${action}.`);
+    setCurrentTab('LOGIN');
+    return false;
+  };
+
   // Sync to local storage for persistence across reloads
   useEffect(() => {
     if (currentUser) {
@@ -308,28 +415,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [currentUser]);
 
   useEffect(() => {
+    if (backendStatus !== 'offline') return; // live data lives in the API, not the browser
     localStorage.setItem('smartrental_preferences', JSON.stringify(preferences));
-  }, [preferences]);
+  }, [preferences, backendStatus]);
 
   useEffect(() => {
+    if (backendStatus !== 'offline') return; // live data lives in the API, not the browser
     localStorage.setItem('smartrental_properties', JSON.stringify(properties));
-  }, [properties]);
+  }, [properties, backendStatus]);
 
   useEffect(() => {
+    if (backendStatus !== 'offline') return; // live data lives in the API, not the browser
     localStorage.setItem('smartrental_favorites', JSON.stringify(favorites));
-  }, [favorites]);
+  }, [favorites, backendStatus]);
 
   useEffect(() => {
+    if (backendStatus !== 'offline') return; // live data lives in the API, not the browser
     localStorage.setItem('smartrental_viewings', JSON.stringify(viewings));
-  }, [viewings]);
+  }, [viewings, backendStatus]);
 
   useEffect(() => {
+    if (backendStatus !== 'offline') return; // live data lives in the API, not the browser
     localStorage.setItem('smartrental_inquiries', JSON.stringify(inquiries));
-  }, [inquiries]);
+  }, [inquiries, backendStatus]);
 
   useEffect(() => {
+    if (backendStatus !== 'offline') return; // live data lives in the API, not the browser
     localStorage.setItem('smartrental_reports', JSON.stringify(reports));
-  }, [reports]);
+  }, [reports, backendStatus]);
 
   useEffect(() => {
     localStorage.setItem('smartrental_leases', JSON.stringify(leases));
@@ -373,7 +486,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const updatePreferences = (newPrefs: Partial<TenantPreferences>) => {
-    setPreferences(prev => ({ ...prev, ...newPrefs }));
+    const next = { ...preferences, ...newPrefs };
+    setPreferences(next);
+    if (isLive && currentUser?.role === 'TENANT') {
+      savePreferencesApi(currentUser.id, next)
+        .then(() => addToast('success', 'Preferences saved — recommendations recalculated.'))
+        .catch(err => addToast('error', `Preferences not saved: ${describeError(err)}`));
+      return;
+    }
     addToast('success', 'Rental preferences updated! Recalculated smart match recommendations.');
   };
 
@@ -387,79 +507,99 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       updatedAt: new Date().toISOString()
     };
 
-    if (backendStatus === 'online') {
+    if (isOnline) {
+      if (!requireLiveSession('publish a listing')) return;
       try {
         const created = await createPropertyApi(localProperty);
         setProperties(prev => [created, ...prev]);
-        addToast('success', `Property "${created.title}" published to the live API`);
-        return;
-      } catch {
-        addToast('warning', 'API publish failed — saved locally instead');
+        addToast('success', `Property "${created.title}" published`);
+      } catch (err) {
+        addToast('error', `Could not publish listing: ${describeError(err)}`);
       }
+      return;
     }
 
     setProperties(prev => [localProperty, ...prev]);
-    addToast('success', `Property "${localProperty.title}" successfully published!`);
+    addToast('success', `Property "${localProperty.title}" saved (demo mode)`);
   };
 
-  const updateProperty = async (id: string, updates: Partial<Property>) => {
+  const updateProperty = async (id: string, updates: Partial<Property>, successMessage = 'Property listing updated') => {
     const existing = properties.find(p => p.id === id);
-    const merged = existing ? { ...existing, ...updates, updatedAt: new Date().toISOString() } : null;
+    if (!existing) return;
+    const merged = { ...existing, ...updates, updatedAt: new Date().toISOString() };
 
-    if (backendStatus === 'online' && merged) {
+    if (isOnline) {
+      if (!requireLiveSession('edit listings')) return;
+      // Optimistic update, rolled back if the API refuses
+      setProperties(prev => prev.map(p => (p.id === id ? merged : p)));
       try {
         const saved = await updatePropertyApi(id, merged);
-        setProperties(prev => prev.map(p => (p.id === id ? saved : p)));
-        addToast('success', 'Property listing updated on the live API');
-        return;
-      } catch {
-        addToast('warning', 'API update failed — saved locally instead');
+        setProperties(prev => prev.map(p => (p.id === id ? { ...saved, inquiriesCount: existing.inquiriesCount } : p)));
+        addToast('success', successMessage);
+      } catch (err) {
+        setProperties(prev => prev.map(p => (p.id === id ? existing : p)));
+        addToast('error', `Update failed: ${describeError(err)}`);
       }
+      return;
     }
 
-    setProperties(prev => prev.map(p => (p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p)));
-    addToast('success', 'Property listing updated successfully!');
+    setProperties(prev => prev.map(p => (p.id === id ? merged : p)));
+    addToast('success', successMessage);
   };
 
   const deleteProperty = async (id: string) => {
-    if (backendStatus === 'online') {
+    if (isOnline) {
+      if (!requireLiveSession('remove listings')) return;
       try {
         await deletePropertyApi(id);
-      } catch {
-        addToast('warning', 'API delete failed — removing locally');
+      } catch (err) {
+        addToast('error', `Could not remove listing: ${describeError(err)}`);
+        return;
       }
     }
     setProperties(prev => prev.filter(p => p.id !== id));
+    setFavorites(prev => prev.filter(f => f !== id));
     addToast('info', 'Property listing removed.');
   };
 
   const togglePropertyAvailability = (id: string) => {
-    setProperties(prev => prev.map(p => {
-      if (p.id === id) {
-        const next = !p.isAvailable;
-        addToast('info', `Property status updated: ${next ? 'Available' : 'Occupied / Hidden'}`);
-        return { ...p, isAvailable: next };
-      }
-      return p;
-    }));
+    const existing = properties.find(p => p.id === id);
+    if (!existing) return;
+    const next = !existing.isAvailable;
+    void updateProperty(id, { isAvailable: next }, `Property status updated: ${next ? 'Available' : 'Occupied / Hidden'}`);
   };
 
   const toggleFavorite = (propertyId: string) => {
-    setFavorites(prev => {
-      const exists = prev.includes(propertyId);
-      if (exists) {
-        addToast('info', 'Removed from saved properties');
-        return prev.filter(id => id !== propertyId);
-      } else {
-        addToast('success', 'Property saved to your favorites!');
-        return [...prev, propertyId];
-      }
-    });
+    if (!requireLiveSession('save properties')) return;
+    const wasSaved = favorites.includes(propertyId);
+    setFavorites(prev => (wasSaved ? prev.filter(id => id !== propertyId) : [...prev, propertyId]));
+    addToast(wasSaved ? 'info' : 'success', wasSaved ? 'Removed from saved properties' : 'Property saved to your favorites!');
+
+    if (isLive) {
+      setFavoriteApi(propertyId, !wasSaved)
+        .then(serverIds => setFavorites(serverIds))
+        .catch(err => {
+          setFavorites(prev => (wasSaved ? [...prev, propertyId] : prev.filter(id => id !== propertyId)));
+          addToast('error', `Could not update favorites: ${describeError(err)}`);
+        });
+    }
   };
 
   const isFavorite = (propertyId: string) => favorites.includes(propertyId);
 
-  const createViewingRequest = (req: Omit<ViewingRequest, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => {
+  const createViewingRequest = async (req: Omit<ViewingRequest, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => {
+    if (isOnline) {
+      if (!requireLiveSession('book a viewing')) return;
+      try {
+        const created = await createViewingRequestApi(req);
+        setViewings(prev => [created, ...prev]);
+        addToast('success', 'Viewing request sent to the landlord! You will be notified upon confirmation.');
+      } catch (err) {
+        addToast('error', `Viewing request failed: ${describeError(err)}`);
+      }
+      return;
+    }
+
     const newReq: ViewingRequest = {
       ...req,
       id: `view-${Date.now().toString().slice(-4)}`,
@@ -468,17 +608,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       updatedAt: new Date().toISOString()
     };
     setViewings(prev => [newReq, ...prev]);
-
-    if (backendStatus === 'online') {
-      createViewingRequestApi(req).catch(() => {
-        addToast('warning', 'Viewing saved locally — API sync failed');
-      });
-    }
-
-    addToast('success', 'Viewing request submitted to landlord! You will be notified upon confirmation.');
+    addToast('success', 'Viewing request submitted (demo mode).');
   };
 
-  const updateViewingStatus = (id: string, status: ViewingRequest['status'], landlordNote?: string) => {
+  const updateViewingStatus = async (id: string, status: ViewingRequest['status'], landlordNote?: string) => {
+    if (isLive) {
+      try {
+        const saved = await updateViewingStatusApi(id, status, landlordNote);
+        setViewings(prev => prev.map(v => (v.id === id ? saved : v)));
+        addToast('info', `Viewing request marked as ${status}`);
+      } catch (err) {
+        addToast('error', `Could not update viewing: ${describeError(err)}`);
+      }
+      return;
+    }
     setViewings(prev => prev.map(v => (v.id === id ? {
       ...v,
       status,
@@ -488,7 +631,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addToast('info', `Viewing request status marked as ${status}`);
   };
 
-  const sendInquiry = (inq: Omit<Inquiry, 'id' | 'createdAt' | 'isRead'>) => {
+  const sendInquiry = async (inq: Omit<Inquiry, 'id' | 'createdAt' | 'isRead'>) => {
+    if (isOnline) {
+      if (!requireLiveSession('message landlords')) return;
+      try {
+        const created = await createInquiryApi(inq);
+        setInquiries(prev => [created, ...prev]);
+        setProperties(prev => prev.map(p => p.id === inq.propertyId ? { ...p, inquiriesCount: p.inquiriesCount + 1 } : p));
+        addToast('success', 'Message delivered to the landlord!');
+      } catch (err) {
+        addToast('error', `Message not sent: ${describeError(err)}`);
+      }
+      return;
+    }
+
     const newInq: Inquiry = {
       ...inq,
       id: `inq-${Date.now().toString().slice(-4)}`,
@@ -496,19 +652,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       createdAt: new Date().toISOString()
     };
     setInquiries(prev => [newInq, ...prev]);
-    // increment property inquiries count
     setProperties(prev => prev.map(p => p.id === inq.propertyId ? { ...p, inquiriesCount: p.inquiriesCount + 1 } : p));
-
-    if (backendStatus === 'online') {
-      createInquiryApi(inq).catch(() => {
-        addToast('warning', 'Inquiry saved locally — API sync failed');
-      });
-    }
-
-    addToast('success', 'Inquiry message dispatched directly to the landlord!');
+    addToast('success', 'Inquiry sent (demo mode).');
   };
 
-  const replyInquiry = (id: string, reply: string) => {
+  const replyInquiry = async (id: string, reply: string) => {
+    if (isLive) {
+      try {
+        const saved = await replyInquiryApi(id, reply);
+        setInquiries(prev => prev.map(inq => (inq.id === id ? saved : inq)));
+        addToast('success', 'Reply sent to tenant.');
+      } catch (err) {
+        addToast('error', `Reply not sent: ${describeError(err)}`);
+      }
+      return;
+    }
     setInquiries(prev => prev.map(inq => (inq.id === id ? {
       ...inq,
       reply,
@@ -518,7 +676,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addToast('success', 'Reply message sent to tenant.');
   };
 
-  const submitReport = (report: Omit<PropertyReport, 'id' | 'createdAt' | 'status'>) => {
+  const submitReport = async (report: Omit<PropertyReport, 'id' | 'createdAt' | 'status'>) => {
+    if (isOnline) {
+      if (!requireLiveSession('report a listing')) return;
+      try {
+        const created = await submitReportApi(report);
+        setReports(prev => [created, ...prev]);
+        addToast('warning', 'Report submitted for admin moderation.');
+      } catch (err) {
+        addToast('error', `Report not submitted: ${describeError(err)}`);
+      }
+      return;
+    }
     const newReport: PropertyReport = {
       ...report,
       id: `rep-${Date.now().toString().slice(-4)}`,
@@ -529,7 +698,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addToast('warning', 'Property report submitted for Admin moderation.');
   };
 
-  const updateReportStatus = (id: string, status: PropertyReport['status'], adminNotes?: string) => {
+  const updateReportStatus = async (id: string, status: PropertyReport['status'], adminNotes?: string) => {
+    if (isLive) {
+      try {
+        const saved = await updateReportStatusApi(id, status, adminNotes);
+        setReports(prev => prev.map(r => (r.id === id ? saved : r)));
+        addToast('info', `Listing report status changed to ${status}`);
+      } catch (err) {
+        addToast('error', `Could not update report: ${describeError(err)}`);
+      }
+      return;
+    }
     setReports(prev => prev.map(r => (r.id === id ? {
       ...r,
       status,
@@ -755,6 +934,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         switchRole,
         allUsers,
         backendStatus,
+        syncing,
+        refreshFromServer,
         preferences,
         updatePreferences,
         properties,
