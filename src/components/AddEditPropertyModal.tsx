@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { PhotoUploader } from './PhotoUploader';
 import { Property, PropertyType } from '../types';
 import {
   RWANDA_PROVINCES,
@@ -40,13 +41,8 @@ export const AddEditPropertyModal: React.FC = () => {
   const [isFurnished, setIsFurnished] = useState(existingProp.isFurnished ?? true);
   const [hasParking, setHasParking] = useState(existingProp.hasParking ?? true);
   const [amenities, setAmenities] = useState<string[]>(existingProp.amenities || ['High-speed WiFi', 'Water Tank & Pump', '24/7 Security Guard']);
-  const [images, setImages] = useState<string[]>(
-    existingProp.images || [
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&auto=format&fit=crop&q=80'
-    ]
-  );
-  const [newImageUrl, setNewImageUrl] = useState('');
+  // New listings start empty: stock photos would misrepresent the home
+  const [images, setImages] = useState<string[]>(existingProp.images || []);
 
   const handleProvinceChange = (newProv: string) => {
     setProvince(newProv);
@@ -79,16 +75,6 @@ export const AddEditPropertyModal: React.FC = () => {
     );
   };
 
-  const handleAddImage = () => {
-    if (newImageUrl.trim()) {
-      setImages(prev => [...prev, newImageUrl.trim()]);
-      setNewImageUrl('');
-    }
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setImages(prev => prev.filter((_, idx) => idx !== index));
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,7 +111,7 @@ export const AddEditPropertyModal: React.FC = () => {
         amenities,
         latitude: lat,
         longitude: lng,
-        images: images.length > 0 ? images : ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80']
+        images
       });
     } else {
       addProperty({
@@ -148,7 +134,7 @@ export const AddEditPropertyModal: React.FC = () => {
         isFurnished,
         hasParking,
         amenities,
-        images: images.length > 0 ? images : ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80'],
+        images,
         isAvailable: true,
         featured: false,
         latitude: lat,
@@ -434,44 +420,7 @@ export const AddEditPropertyModal: React.FC = () => {
             </div>
           </div>
 
-          <div>
-            <label className="text-label block mb-1.5">
-              Photos ({images.length} added)
-            </label>
-            <div className="flex items-center gap-2 mb-2">
-              <input
-                type="url"
-                value={newImageUrl}
-                onChange={e => setNewImageUrl(e.target.value)}
-                placeholder="Paste image URL (https://...)"
-                className="input-base flex-1 text-xs"
-              />
-              <button
-                type="button"
-                onClick={handleAddImage}
-                className="btn-primary px-3.5 py-2 text-xs flex items-center gap-1 shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {images.map((img, idx) => (
-                <div key={idx} className="relative aspect-video rounded-lg overflow-hidden group bg-stone-100 border border-stone-200">
-                  <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage(idx)}
-                    className="absolute top-1 right-1 p-1 rounded-md bg-tea-700 text-white opacity-90 group-hover:opacity-100 transition-opacity"
-                    aria-label="Remove photo"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+          <PhotoUploader value={images} onChange={setImages} folder="listings" max={12} allowUrl />
 
           <div className="pt-3 border-t border-stone-200 flex items-center justify-between gap-3">
             <button

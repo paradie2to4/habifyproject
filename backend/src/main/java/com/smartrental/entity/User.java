@@ -34,10 +34,16 @@ public class User {
     @Column(name = "is_active")
     private Boolean isActive = true;
 
+    @Column(name = "email_verified")
+    private Boolean emailVerified = false;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public User() {}
+
+    public Boolean getEmailVerified() { return Boolean.TRUE.equals(emailVerified); }
+    public void setEmailVerified(Boolean emailVerified) { this.emailVerified = emailVerified; }
 
     public User(String id, String email, String passwordHash, String fullName, String phoneNumber, String role, String avatarUrl) {
         this.id = id;

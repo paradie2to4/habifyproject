@@ -30,11 +30,14 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AccountService accountService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService,
+                       AccountService accountService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.accountService = accountService;
     }
 
     public AuthResponseDto login(LoginRequestDto req) {
@@ -45,10 +48,10 @@ public class AuthService {
                 .orElseThrow(AuthService::invalidCredentials);
 
         if (LEGACY_PLACEHOLDER_HASH.equals(user.getPasswordHash())) {
-            // Accounts created before passwords were stored: the first successful login sets the password.
-            log.info("Setting first password for legacy account {}", user.getId());
-            user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
-            userRepository.save(user);
+            // Accounts created before passwords were stored must prove they own the email first.
+            log.info("Legacy account {} must set a password via reset", user.getId());
+            throw new ApiException(HttpStatus.UNAUTHORIZED,
+                    "This account needs a new password. Use “Forgot password” to set one by email.");
         } else if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
             throw invalidCredentials();
         }
@@ -89,7 +92,10 @@ public class AuthService {
         user.setIsActive(true);
         user.setCreatedAt(LocalDateTime.now());
 
+        user.setEmailVerified(false);
+
         User saved = userRepository.save(user);
+        accountService.sendVerification(saved.getId());
         return new AuthResponseDto(jwtService.generateToken(saved), saved);
     }
 

@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { ActiveTab } from '../types';
 import { HabifyLogo } from './HabifyLogo';
+import { NotificationBell } from './NotificationBell';
 import { roleDisplayName } from '../utils/roles';
 import {
   Compass,
@@ -58,7 +59,7 @@ const Avatar: React.FC<{ src?: string; name: string; size?: string }> = ({ src, 
   );
 
 export const Navbar: React.FC = () => {
-  const { currentUser, favorites, viewings, inquiries, reports, currentTab, setCurrentTab, openModal, switchRole } = useApp();
+  const { currentUser, favorites, viewings, inquiries, reports, currentTab, setCurrentTab, openModal, switchRole, isLive } = useApp();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -97,9 +98,9 @@ export const Navbar: React.FC = () => {
         : 0;
   const unreadMessages =
     role === 'LANDLORD'
-      ? inquiries.filter(i => i.landlordId === currentUser!.id && !i.isRead).length
+      ? inquiries.filter(i => i.landlordId === currentUser!.id).reduce((n, i) => n + (i.unreadCount ?? (i.isRead ? 0 : 1)), 0)
       : currentUser
-        ? inquiries.filter(i => i.tenantId === currentUser.id && Boolean(i.reply)).length
+        ? inquiries.filter(i => i.tenantId === currentUser.id).reduce((n, i) => n + (i.unreadCount ?? 0), 0)
         : 0;
   const pendingReports = role === 'ADMIN' ? reports.filter(r => r.status === 'PENDING').length : 0;
 
@@ -175,6 +176,7 @@ export const Navbar: React.FC = () => {
           </nav>
 
           <div className="ml-auto flex items-center gap-1.5">
+            {currentUser && isLive && <NotificationBell />}
             <ThemeToggle />
 
             {role === 'LANDLORD' && currentTab !== 'LANDLORD_DASHBOARD' && (

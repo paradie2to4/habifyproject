@@ -23,7 +23,7 @@ function resolveApiBase(): string {
   return stripped || '/api';
 }
 
-const API_BASE = resolveApiBase();
+export const API_BASE = resolveApiBase();
 
 function healthUrl(): string {
   if (API_BASE.startsWith('http')) {
@@ -44,7 +44,7 @@ export class ApiError extends Error {
   }
 }
 
-function getToken(): string | null {
+export function getToken(): string | null {
   return localStorage.getItem('smartrental_token');
 }
 
@@ -57,9 +57,9 @@ export function getAuthToken(): string | null {
   return getToken();
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers || {});
-  if (!headers.has('Content-Type') && options.body) {
+  if (!headers.has('Content-Type') && options.body && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
   const token = getToken();
@@ -95,15 +95,16 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-function splitCsv(value: unknown): string[] {
+export function splitCsv(value: unknown): string[] {
   if (Array.isArray(value)) return value.map(String).filter(Boolean);
   if (typeof value !== 'string' || !value.trim()) return [];
   return value.split(',').map(s => s.trim()).filter(Boolean);
 }
 
-function toIso(value: unknown): string {
+export function toIso(value: unknown): string {
   if (!value) return new Date().toISOString();
-  if (typeof value === 'string') return value;
+  // The API sends UTC timestamps without a zone ("2026-11-18T08:00:00.123"); mark them as UTC
+  if (typeof value === 'string') return /T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(value) ? `${value}Z` : value;
   if (Array.isArray(value) && value.length >= 3) {
     const [y, m, d, h = 0, min = 0, s = 0] = value as number[];
     return new Date(y, m - 1, d, h, min, s).toISOString();
@@ -117,7 +118,7 @@ function bool(value: unknown, fallback = false): boolean {
   return Boolean(value);
 }
 
-function num(value: unknown, fallback = 0): number {
+export function num(value: unknown, fallback = 0): number {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
@@ -163,6 +164,7 @@ export interface BackendUser {
   avatarUrl?: string;
   isActive?: boolean;
   active?: boolean;
+  emailVerified?: boolean;
   createdAt?: string | number[];
   passwordHash?: string;
 }
@@ -182,6 +184,7 @@ export function mapBackendUser(raw: BackendUser): User {
     phoneNumber: raw.phoneNumber,
     avatarUrl: raw.avatarUrl,
     isActive: bool(raw.isActive ?? raw.active, true),
+    emailVerified: bool(raw.emailVerified, false),
     createdAt: toIso(raw.createdAt)
   };
 }
@@ -440,10 +443,11 @@ export async function updateViewingStatusApi(id: string, status: ViewingStatus, 
 // Inquiries
 // ---------------------------------------------------------------------------
 
-interface BackendInquiry extends Omit<Inquiry, 'createdAt' | 'repliedAt' | 'isRead'> {
+interface BackendInquiry extends Omit<Inquiry, 'createdAt' | 'repliedAt' | 'isRead' | 'lastMessageAt'> {
   status?: string;
   createdAt?: string | number[];
   repliedAt?: string | number[] | null;
+  lastMessageAt?: string | number[] | null;
 }
 
 function mapInquiry(raw: BackendInquiry): Inquiry {
@@ -455,7 +459,10 @@ function mapInquiry(raw: BackendInquiry): Inquiry {
     reply: raw.reply || undefined,
     isRead: (raw.status || 'UNREAD').toUpperCase() !== 'UNREAD',
     createdAt: toIso(raw.createdAt),
-    repliedAt: raw.repliedAt ? toIso(raw.repliedAt) : undefined
+    repliedAt: raw.repliedAt ? toIso(raw.repliedAt) : undefined,
+    unreadCount: raw.unreadCount ?? 0,
+    lastMessageAt: toIso(raw.lastMessageAt ?? raw.createdAt),
+    lastMessagePreview: raw.lastMessagePreview || raw.message
   };
 }
 

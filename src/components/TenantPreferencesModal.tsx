@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { AccountSettings } from './AccountSettings';
 import {
   RWANDA_PROVINCES,
   RWANDA_LOCATIONS_DATA,
@@ -17,10 +18,12 @@ import {
 const PROPERTY_TYPES: PropertyType[] = ['APARTMENT', 'HOUSE', 'VILLA', 'STUDIO', 'TOWNHOUSE', 'DUPLEX'];
 
 export const TenantPreferencesModal: React.FC = () => {
-  const { preferences, updatePreferences, closeModal, currentUser, setCurrentUser, addToast } = useApp();
+  const { preferences, updatePreferences, closeModal, currentUser, updateProfile } = useApp();
 
   const [fullName, setFullName] = useState(currentUser?.fullName || '');
   const [phone, setPhone] = useState(currentUser?.phoneNumber || '');
+  const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl || '');
+  const [saving, setSaving] = useState(false);
   const [maxBudget, setMaxBudget] = useState(preferences.maxBudget);
   const [monthlyIncome, setMonthlyIncome] = useState(preferences.monthlyIncome);
   const [minBedrooms, setMinBedrooms] = useState(preferences.minBedrooms);
@@ -49,17 +52,17 @@ export const TenantPreferencesModal: React.FC = () => {
     );
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (currentUser) {
-      const nameChanged = fullName.trim() !== currentUser.fullName;
-      const phoneChanged = phone.trim() !== (currentUser.phoneNumber || '');
-      if (nameChanged || phoneChanged) {
-        setCurrentUser({
-          ...currentUser,
-          fullName: fullName.trim() || currentUser.fullName,
-          phoneNumber: phone.trim() || undefined
-        });
-        addToast('success', 'Profile details updated.');
+      const changes: { fullName?: string; phoneNumber?: string; avatarUrl?: string } = {};
+      if (fullName.trim() && fullName.trim() !== currentUser.fullName) changes.fullName = fullName.trim();
+      if (phone.trim() !== (currentUser.phoneNumber || '')) changes.phoneNumber = phone.trim();
+      if (avatarUrl !== (currentUser.avatarUrl || '')) changes.avatarUrl = avatarUrl;
+      if (Object.keys(changes).length) {
+        setSaving(true);
+        const ok = await updateProfile(changes);
+        setSaving(false);
+        if (!ok) return;
       }
     }
 
@@ -92,7 +95,7 @@ export const TenantPreferencesModal: React.FC = () => {
             </div>
             <div>
               <h2 className="font-display text-lg font-semibold">
-                {currentUser?.role === 'TENANT' ? 'Profile & preferences' : 'Your preferences'}
+                {currentUser?.role === 'TENANT' || !currentUser ? 'Profile & preferences' : 'Your profile'}
               </h2>
               <p className="text-xs text-stone-400 mt-0.5">
                 Match homes to how you actually live
@@ -111,34 +114,16 @@ export const TenantPreferencesModal: React.FC = () => {
 
         <div className="p-5 sm:p-6 space-y-6 max-h-[70vh] overflow-y-auto text-ink-900">
           {currentUser && (
-            <div className="p-4 bg-white rounded-xl border border-stone-200 space-y-3">
-              <p className="text-label">Account profile</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-label block mb-1.5">Full name</label>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={e => setFullName(e.target.value)}
-                    className="input-base w-full"
-                    placeholder="Your name"
-                  />
-                </div>
-                <div>
-                  <label className="text-label block mb-1.5">Phone</label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    className="input-base w-full"
-                    placeholder="+250 788 000 000"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-stone-600">
-                Signed in as <span className="font-semibold text-ink-900">{currentUser.email}</span>
-              </p>
-            </div>
+            <AccountSettings
+              fullName={fullName}
+              phone={phone}
+              avatarUrl={avatarUrl}
+              onChange={f => {
+                if (f.fullName !== undefined) setFullName(f.fullName);
+                if (f.phone !== undefined) setPhone(f.phone);
+                if (f.avatarUrl !== undefined) setAvatarUrl(f.avatarUrl);
+              }}
+            />
           )}
 
           {(currentUser?.role === 'TENANT' || !currentUser) && (
@@ -365,11 +350,12 @@ export const TenantPreferencesModal: React.FC = () => {
 
           <button
             type="button"
-            onClick={handleSave}
+            onClick={() => void handleSave()}
+            disabled={saving}
             className="btn-accent flex items-center gap-1.5 text-xs"
           >
             <Sparkles className="w-4 h-4" />
-            <span>Save profile</span>
+            <span>{saving ? 'Saving…' : 'Save'}</span>
           </button>
         </div>
       </div>

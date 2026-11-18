@@ -2,6 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import { PropertyCard } from '../components/PropertyCard';
 import { EmptyState } from '../components/EmptyState';
+import { TenantHomeSection } from '../components/TenantHomeSection';
 import { DashboardHero, heroGhostBtn, heroPrimaryBtn, todayLabel } from '../components/DashboardHero';
 import {
   Heart,
@@ -116,6 +117,8 @@ export const TenantDashboardView: React.FC = () => {
           }
         ]}
       />
+
+      <TenantHomeSection />
 
       <section>
         <div className="flex items-end justify-between gap-4 mb-5">

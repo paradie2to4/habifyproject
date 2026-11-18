@@ -36,11 +36,18 @@ public class DemoAccountInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         for (String email : DEMO_EMAILS) {
             userRepository.findByEmail(email).ifPresent(user -> {
+                boolean changed = false;
                 if (SEED_HASH.equals(user.getPasswordHash())) {
                     user.setPasswordHash(passwordEncoder.encode(DEMO_PASSWORD));
-                    userRepository.save(user);
+                    changed = true;
                     log.info("Initialised demo password for {}", email);
                 }
+                // Seeded demo inboxes don't exist, so treat them as verified
+                if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+                    user.setEmailVerified(true);
+                    changed = true;
+                }
+                if (changed) userRepository.save(user);
             });
         }
     }

@@ -28,6 +28,7 @@ export interface User {
   phoneNumber?: string;
   avatarUrl?: string;
   isActive: boolean;
+  emailVerified?: boolean;
   createdAt: string;
 }
 
@@ -145,6 +146,31 @@ export interface Inquiry {
   isRead: boolean;
   createdAt: string;
   repliedAt?: string;
+  /** Unread messages for the signed-in viewer */
+  unreadCount?: number;
+  lastMessageAt?: string;
+  lastMessagePreview?: string;
+}
+
+export interface ThreadMessage {
+  id: string;
+  inquiryId: string;
+  senderId: string;
+  senderName?: string;
+  senderRole: 'TENANT' | 'LANDLORD';
+  body: string;
+  createdAt: string;
+  readAt?: string;
+}
+
+export interface AppNotification {
+  id: string;
+  type: string;
+  title: string;
+  body?: string;
+  link?: string;
+  readAt?: string;
+  createdAt: string;
 }
 
 export interface PropertyReport {
@@ -196,6 +222,7 @@ export interface LeaseAgreement {
   tenantPhone: string;
   tenantEmail: string;
   landlordId: string;
+  landlordName?: string;
   monthlyRent: number;
   securityDeposit: number;
   startDate: string;
@@ -213,11 +240,15 @@ export interface RentPayment {
   propertyId: string;
   propertyTitle: string;
   tenantName: string;
+  tenantId?: string;
+  landlordId?: string;
   landlordName: string;
   amountRwf: number;
   paymentMethod: 'MTN_MOMO' | 'AIRTEL_MONEY' | 'BK_TRANSFER' | 'IM_BANK' | 'CASH';
   transactionReference: string;
   paidForMonth: string;
+  /** yyyy-MM */
+  period?: string;
   paymentDate: string;
   status: 'VERIFIED' | 'PENDING';
   notes?: string;
@@ -229,6 +260,11 @@ export interface MaintenanceTicket {
   propertyTitle: string;
   propertySector: string;
   tenantName?: string;
+  tenantId?: string;
+  landlordId?: string;
+  reportedBy?: 'TENANT' | 'LANDLORD';
+  photos?: string[];
+  landlordNotes?: string;
   category: 'PLUMBING' | 'ELECTRICAL_SOLAR' | 'WATER_PUMP_TANK' | 'APPLIANCES' | 'STRUCTURAL_PAINTING' | 'INTERNET_SECURITY';
   title: string;
   description: string;

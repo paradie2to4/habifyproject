@@ -50,8 +50,9 @@ public class SecurityConfig {
                 // Public
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/actuator/health/**", "/actuator/info", "/h2-console/**", "/error").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/properties/**", "/api/tools/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register",
+                        "/api/auth/password/forgot", "/api/auth/password/reset", "/api/auth/verify/confirm").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/properties/**", "/api/tools/**", "/api/uploads/*").permitAll()
                 // Role-gated
                 .requestMatchers("/api/admin/**", "/actuator/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/properties/**").hasAnyRole("LANDLORD", "ADMIN")

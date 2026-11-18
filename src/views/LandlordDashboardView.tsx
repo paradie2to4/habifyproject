@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Property, ViewingRequest, Inquiry, LeaseAgreement, RentPayment, MaintenanceTicket } from '../types';
 import { PropertyImage } from '../components/PropertyImage';
@@ -46,6 +47,12 @@ import {
   CheckSquare
 } from 'lucide-react';
 
+/** "2026-11" → "November 2026" */
+const monthLabel = (ym: string) => {
+  const [y, m] = ym.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+};
+
 type LandlordTab = 'PROPERTIES' | 'VIEWINGS' | 'INQUIRIES' | 'LEASES_PAYMENTS' | 'MAINTENANCE' | 'YIELD_CALCULATOR';
 
 export const LandlordDashboardView: React.FC = () => {
@@ -70,12 +77,29 @@ export const LandlordDashboardView: React.FC = () => {
     getListingQuality,
     sendInquiry,
     replyInquiry,
+    isLive,
+    confirmPayment,
     addToast,
     setCurrentTab
   } = useApp();
 
   // Active sub-tab in Landlord Hub
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<LandlordTab>('PROPERTIES');
+
+  // Deep links from notifications and emails: /landlord?tab=viewings
+  React.useEffect(() => {
+    const map: Record<string, LandlordTab> = {
+      properties: 'PROPERTIES',
+      viewings: 'VIEWINGS',
+      inquiries: 'INQUIRIES',
+      leases: 'LEASES_PAYMENTS',
+      maintenance: 'MAINTENANCE'
+    };
+    const tab = map[(searchParams.get('tab') || '').toLowerCase()];
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
 
   // Properties Filter & Search inside Hub
   const [propSearch, setPropSearch] = useState('');
@@ -93,7 +117,7 @@ export const LandlordDashboardView: React.FC = () => {
   const [selectedLeaseForPayment, setSelectedLeaseForPayment] = useState<LeaseAgreement | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<number>(400000);
   const [paymentMethod, setPaymentMethod] = useState<'MTN_MOMO' | 'AIRTEL_MONEY' | 'BK_TRANSFER' | 'IM_BANK' | 'CASH'>('MTN_MOMO');
-  const [paymentMonth, setPaymentMonth] = useState('August 2026');
+  const [paymentMonth, setPaymentMonth] = useState(() => new Date().toISOString().slice(0, 7)); // yyyy-MM
   const [paymentNotes, setPaymentNotes] = useState('');
 
   // Active Receipt Modal State
@@ -140,6 +164,8 @@ export const LandlordDashboardView: React.FC = () => {
     myProperties.some(p => p.id === m.propertyId)
   );
 
+  const thisMonth = new Date().toISOString().slice(0, 7);
+
   // Computed Portfolio Stats
   const totalMonthlyPotential = myProperties.reduce((acc, p) => acc + p.monthlyRent, 0);
   const availableCount = myProperties.filter(p => p.isAvailable).length;
@@ -147,7 +173,7 @@ export const LandlordDashboardView: React.FC = () => {
   const occupancyRate = myProperties.length > 0 ? Math.round((rentedCount / myProperties.length) * 100) : 0;
 
   const totalCollectedThisMonth = myPayments
-    .filter(p => p.paidForMonth.toLowerCase().includes('august'))
+    .filter(p => p.status !== 'PENDING' && (p.period ? p.period === thisMonth : p.paidForMonth === monthLabel(thisMonth)))
     .reduce((acc, p) => acc + p.amountRwf, 0);
 
   const avgQualityScore = myProperties.length > 0
@@ -182,11 +208,11 @@ export const LandlordDashboardView: React.FC = () => {
   });
 
   // Handle Recording Rent Payment
-  const handleSavePayment = (e: React.FormEvent) => {
+  const handleSavePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedLeaseForPayment) return;
 
-    const newPayment = recordPayment({
+    const newPayment = await recordPayment({
       leaseId: selectedLeaseForPayment.id,
       propertyId: selectedLeaseForPayment.propertyId,
       propertyTitle: selectedLeaseForPayment.propertyTitle,
@@ -195,22 +221,24 @@ export const LandlordDashboardView: React.FC = () => {
       amountRwf: paymentAmount,
       paymentMethod,
       transactionReference: `${paymentMethod}-${Math.floor(100000 + Math.random() * 900000)}`,
-      paidForMonth: paymentMonth,
+      paidForMonth: monthLabel(paymentMonth),
+      period: paymentMonth,
       paymentDate: new Date().toISOString().slice(0, 10),
-      notes: paymentNotes || `Rent payment for ${paymentMonth}`
+      notes: paymentNotes || `Rent payment for ${monthLabel(paymentMonth)}`
     });
+    if (!newPayment) return;
 
     setShowPaymentModal(false);
     setActiveReceipt(newPayment);
   };
 
   // Handle Adding Maintenance Ticket
-  const handleSaveMaintenance = (e: React.FormEvent) => {
+  const handleSaveMaintenance = async (e: React.FormEvent) => {
     e.preventDefault();
     const prop = properties.find(p => p.id === maintPropId) || myProperties[0];
     if (!prop) return;
 
-    addMaintenanceTicket({
+    const ok = await addMaintenanceTicket({
       propertyId: prop.id,
       propertyTitle: prop.title,
       propertySector: prop.locationSector,
@@ -222,6 +250,7 @@ export const LandlordDashboardView: React.FC = () => {
       estimatedCostRwf: maintEstCost,
       contractorName: maintContractor || 'Local Contractor'
     });
+    if (!ok) return;
 
     setShowMaintenanceModal(false);
     setMaintTitle('');
@@ -230,20 +259,20 @@ export const LandlordDashboardView: React.FC = () => {
   };
 
   // Handle Creating Lease Agreement
-  const handleSaveNewLease = (e: React.FormEvent) => {
+  const handleSaveNewLease = async (e: React.FormEvent) => {
     e.preventDefault();
     const prop = properties.find(p => p.id === newLeasePropId) || myProperties[0];
     if (!prop) return;
 
-    addLease({
+    const ok = await addLease({
       propertyId: prop.id,
       propertyTitle: prop.title,
       propertyAddress: prop.address,
       propertySector: prop.locationSector,
-      tenantId: `usr-tenant-${Date.now().toString().slice(-4)}`,
+      tenantId: '',
       tenantName: newLeaseTenantName,
       tenantPhone: newLeaseTenantPhone,
-      tenantEmail: newLeaseTenantEmail || 'tenant@client.rw',
+      tenantEmail: newLeaseTenantEmail.trim(),
       landlordId: currentUser?.id || 'usr-landlord-01',
       monthlyRent: newLeaseRent,
       securityDeposit: newLeaseRent,
@@ -251,11 +280,12 @@ export const LandlordDashboardView: React.FC = () => {
       endDate: newLeaseEnd,
       paymentDueDay: 5,
       status: 'ACTIVE',
-      paymentStatus: 'PAID'
+      paymentStatus: 'DUE'
     });
+    if (!ok) return;
 
-    // Mark property as rented
-    if (prop.isAvailable) {
+    // The API marks the home as rented itself; demo mode needs it done here
+    if (!isLive && prop.isAvailable) {
       togglePropertyAvailability(prop.id);
     }
 
@@ -573,7 +603,7 @@ export const LandlordDashboardView: React.FC = () => {
                             deleteProperty(prop.id);
                           }
                         }}
-                        className="p-2 text-stone-500 hover:text-rose-600 rounded-xl hover:bg-rose-50 transition-colors"
+                        className="p-2 text-stone-500 hover:text-red-800 rounded-xl hover:bg-red-50 transition-colors"
                         title="Delete Listing"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -644,10 +674,10 @@ export const LandlordDashboardView: React.FC = () => {
                           <span
                             className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
                               v.status === 'PENDING'
-                                ? 'bg-amber-100 text-amber-800'
+                                ? 'bg-saffron-100 text-saffron-800'
                                 : v.status === 'CONFIRMED'
                                 ? 'bg-tea-100 text-tea-800'
-                                : 'bg-rose-100 text-rose-800'
+                                : 'bg-red-50 text-red-800'
                             }`}
                           >
                             {v.status}
@@ -711,7 +741,7 @@ export const LandlordDashboardView: React.FC = () => {
 
                           <button
                             onClick={() => updateViewingStatus(v.id, 'REJECTED')}
-                            className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                            className="px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-50 text-red-800 border border-red-200 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
                           >
                             <XCircle className="w-3.5 h-3.5" />
                             <span>Decline</span>
@@ -755,7 +785,7 @@ export const LandlordDashboardView: React.FC = () => {
                   key={inq.id}
                   onClick={() => setSelectedInquiryId(inq.id)}
                   className={`w-full p-4 text-left transition-colors flex items-start gap-3.5 cursor-pointer ${
-                    active ? 'bg-tea-50 border-l-4 border-emerald-600' : 'hover:bg-stone-50'
+                    active ? 'bg-tea-50 border-l-4 border-tea-600' : 'hover:bg-stone-50'
                   }`}
                 >
                   <img
@@ -868,9 +898,13 @@ export const LandlordDashboardView: React.FC = () => {
                     />
 
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-stone-500">
-                        Direct reply will notify the tenant via Smart Rental message center.
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/messages?thread=${activeInq.id}`)}
+                        className="text-xs font-semibold text-tea-700 hover:text-tea-800"
+                      >
+                        Open full conversation →
+                      </button>
                       <button
                         onClick={() => handleSendInquiryReply(activeInq.id)}
                         disabled={!replyText.trim()}
@@ -952,7 +986,7 @@ export const LandlordDashboardView: React.FC = () => {
                       className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
                         lease.paymentStatus === 'PAID'
                           ? 'bg-tea-100 text-tea-800'
-                          : 'bg-amber-100 text-amber-800'
+                          : 'bg-saffron-100 text-saffron-800'
                       }`}
                     >
                       {lease.paymentStatus}
@@ -1048,12 +1082,26 @@ export const LandlordDashboardView: React.FC = () => {
                       <td className="p-3 text-ink-700">{pay.paidForMonth}</td>
                       <td className="p-3 text-stone-600">{pay.paymentDate}</td>
                       <td className="p-3 text-right">
-                        <button
-                          onClick={() => setActiveReceipt(pay)}
-                          className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-ink-800 font-bold text-[11px] transition-colors cursor-pointer"
-                        >
-                          View Receipt
-                        </button>
+                        {pay.status === 'PENDING' ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="px-2 py-0.5 rounded-full bg-saffron-100 text-saffron-800 font-semibold text-[11px]" title={`Reported by the tenant · ref ${pay.transactionReference}`}>
+                              Reported by tenant
+                            </span>
+                            <button
+                              onClick={() => confirmPayment(pay.id)}
+                              className="px-3 py-1.5 rounded-xl bg-tea-700 hover:bg-tea-800 text-white font-semibold text-[11px] transition-colors cursor-pointer"
+                            >
+                              Confirm received
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setActiveReceipt(pay)}
+                            className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-ink-800 font-bold text-[11px] transition-colors cursor-pointer"
+                          >
+                            View Receipt
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -1072,7 +1120,7 @@ export const LandlordDashboardView: React.FC = () => {
           <div className="bg-white rounded-xl p-6 border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-base font-bold text-ink-900 flex items-center gap-2">
-                <Wrench className="w-5 h-5 text-amber-600" />
+                <Wrench className="w-5 h-5 text-saffron-600" />
                 <span>Property Maintenance & Repairs</span>
               </h2>
               <p className="text-xs text-stone-600 mt-0.5">
@@ -1085,7 +1133,7 @@ export const LandlordDashboardView: React.FC = () => {
                 if (myProperties.length > 0) setMaintPropId(myProperties[0].id);
                 setShowMaintenanceModal(true);
               }}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-saffron-600 hover:bg-saffron-700 text-white shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Log Maintenance Ticket</span>
@@ -1106,7 +1154,7 @@ export const LandlordDashboardView: React.FC = () => {
                     <span
                       className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
                         ticket.priority === 'URGENT' || ticket.priority === 'HIGH'
-                          ? 'bg-rose-100 text-rose-800'
+                          ? 'bg-red-50 text-red-800'
                           : 'bg-tea-100 text-ink-800'
                       }`}
                     >
@@ -1115,7 +1163,19 @@ export const LandlordDashboardView: React.FC = () => {
                   </div>
 
                   <h3 className="text-xs font-bold text-ink-900 line-clamp-1">{ticket.title}</h3>
+                  {ticket.reportedBy === 'TENANT' && (
+                    <p className="text-[11px] font-semibold text-tea-700">Reported by {ticket.tenantName || 'your tenant'} · {ticket.reportedDate}</p>
+                  )}
                   <p className="text-xs text-stone-700">{ticket.description}</p>
+                  {ticket.photos && ticket.photos.length > 0 && (
+                    <div className="flex gap-2 pt-1">
+                      {ticket.photos.map(src => (
+                        <a key={src} href={src} target="_blank" rel="noopener noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-stone-200 shrink-0">
+                          <img src={src} alt="Photo of the problem" className="w-full h-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2 pt-2 border-t border-stone-100 text-xs">
@@ -1125,7 +1185,7 @@ export const LandlordDashboardView: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between text-stone-600">
                     <span>Est. Cost:</span>
-                    <strong className="text-amber-700 font-mono">{ticket.estimatedCostRwf.toLocaleString()} RWF</strong>
+                    <strong className="text-saffron-700 font-mono">{ticket.estimatedCostRwf.toLocaleString()} RWF</strong>
                   </div>
                   {ticket.contractorName && (
                     <div className="flex items-center justify-between text-stone-600">
@@ -1140,7 +1200,7 @@ export const LandlordDashboardView: React.FC = () => {
                         ticket.status === 'RESOLVED'
                           ? 'bg-tea-100 text-tea-800'
                           : ticket.status === 'IN_PROGRESS'
-                          ? 'bg-amber-100 text-amber-800'
+                          ? 'bg-saffron-100 text-saffron-800'
                           : 'bg-stone-100 text-ink-800'
                       }`}
                     >
@@ -1311,7 +1371,7 @@ export const LandlordDashboardView: React.FC = () => {
 
                 <div className="bg-ink-950/50 p-4 rounded-lg border border-tea-600">
                   <span className="text-[10px] uppercase font-bold text-stone-300">Net Yield</span>
-                  <div className="text-2xl font-bold text-amber-300 mt-1">{netRentalYield}%</div>
+                  <div className="text-2xl font-bold text-saffron-300 mt-1">{netRentalYield}%</div>
                   <span className="text-[10px] text-stone-300">After all expenses</span>
                 </div>
 
@@ -1440,7 +1500,7 @@ export const LandlordDashboardView: React.FC = () => {
                 <div>
                   <label className="block font-bold text-ink-700 mb-1">Month Period</label>
                   <input
-                    type="text"
+                    type="month"
                     required
                     value={paymentMonth}
                     onChange={e => setPaymentMonth(e.target.value)}
@@ -1571,7 +1631,7 @@ export const LandlordDashboardView: React.FC = () => {
           <div className="animate-pop bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 border border-stone-200 space-y-4 text-left">
             <div className="flex items-center justify-between pb-3 border-b border-stone-100">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-saffron-100 text-saffron-700 flex items-center justify-center font-bold">
                   <Wrench className="w-4 h-4" />
                 </div>
                 <div>
@@ -1692,7 +1752,7 @@ export const LandlordDashboardView: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-700 text-white font-bold transition-colors cursor-pointer"
                 >
                   Save Maintenance Ticket
                 </button>

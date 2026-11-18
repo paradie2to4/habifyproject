@@ -318,6 +318,9 @@ export const HabifyChatbot: React.FC = () => {
     ? `Questions about “${currentHome.title}”? I can explain its match score, check if it fits your budget, or find similar homes.`
     : `Muraho${firstName ? `, ${firstName}` : ''}! Describe the home you want in your own words and I’ll find it. I can also check what you can afford and tell you about neighborhoods.`;
 
+  // The Messages page has its own composer in the same corner
+  if (location.pathname === '/messages') return null;
+
   return (
     <div className="chat-fab fixed bottom-5 right-5 z-[60] flex flex-col items-end gap-3">
       {open && (

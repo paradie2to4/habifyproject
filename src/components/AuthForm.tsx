@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Role, User } from '../types';
@@ -24,6 +25,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 }) => {
   const { setCurrentUser, addToast, setCurrentTab, backendStatus } = useApp();
 
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -240,6 +242,21 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             />
             Keep me signed in
           </label>
+        )}
+        {mode === 'LOGIN' && (
+          <p className="-mt-1 text-right">
+            <a
+              href="/forgot-password"
+              onClick={e => {
+                e.preventDefault();
+                onSuccess?.();
+                navigate('/forgot-password');
+              }}
+              className="text-sm font-semibold text-tea-700 hover:text-tea-800"
+            >
+              Forgot password?
+            </a>
+          </p>
         )}
 
         {error && (

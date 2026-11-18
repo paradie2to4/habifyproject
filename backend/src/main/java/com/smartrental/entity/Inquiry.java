@@ -56,6 +56,25 @@ public class Inquiry {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "last_message_at")
+    private LocalDateTime lastMessageAt;
+
+    @Column(name = "last_message_preview", length = 200)
+    private String lastMessagePreview;
+
+    /** Per-viewer count, filled in by the controller (not stored). */
+    @Transient
+    private Long unreadCount;
+
+    public LocalDateTime getLastMessageAt() { return lastMessageAt != null ? lastMessageAt : createdAt; }
+    public void setLastMessageAt(LocalDateTime lastMessageAt) { this.lastMessageAt = lastMessageAt; }
+
+    public String getLastMessagePreview() { return lastMessagePreview != null ? lastMessagePreview : message; }
+    public void setLastMessagePreview(String lastMessagePreview) { this.lastMessagePreview = lastMessagePreview; }
+
+    public Long getUnreadCount() { return unreadCount; }
+    public void setUnreadCount(Long unreadCount) { this.unreadCount = unreadCount; }
+
     public Inquiry() {}
 
     public String getId() { return id; }

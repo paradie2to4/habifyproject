@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { Routes, Route, useLocation, matchPath } from 'react-router-dom';
 import { PROPERTY_ROUTE } from './routes';
 import { PropertyPage } from './views/PropertyPage';
+import { ForgotPasswordView, ResetPasswordView, VerifyEmailView } from './views/AccountPages';
+import { VerifyEmailBanner } from './components/VerifyEmailBanner';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { ToastContainer } from './components/ToastContainer';
@@ -89,15 +91,19 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col font-sans text-ink-900 antialiased">
       <Navbar />
+      <VerifyEmailBanner />
 
       <main
-        key={isPropertyPage ? location.pathname : currentTab}
+        key={location.pathname}
         className={`animate-page flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-28 md:pb-12 ${
           isAuthPage ? 'max-w-6xl flex items-center' : isExplore ? 'max-w-[1600px]' : 'max-w-7xl'
         }`}
       >
         <Routes>
           <Route path={PROPERTY_ROUTE} element={<PropertyPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordView />} />
+          <Route path="/reset-password" element={<ResetPasswordView />} />
+          <Route path="/verify-email" element={<VerifyEmailView />} />
           <Route path="*" element={renderActiveView()} />
         </Routes>
       </main>

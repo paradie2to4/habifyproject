@@ -43,11 +43,11 @@ export const PROVINCE_VIEW_CENTERS: Record<RwandaProvince, { lat: number; lng: n
 };
 
 export const PROVINCE_COLORS: Record<RwandaProvince, { bg: string; border: string; badge: string }> = {
-  'Kigali City': { bg: '#4f46e5', border: '#818cf8', badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
-  'Northern Province': { bg: '#059669', border: '#34d399', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-  'Western Province': { bg: '#0284c7', border: '#38bdf8', badge: 'bg-sky-500/20 text-sky-300 border-sky-500/30' },
-  'Southern Province': { bg: '#d97706', border: '#fbbf24', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-  'Eastern Province': { bg: '#7c3aed', border: '#a78bfa', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/30' }
+  'Kigali City': { bg: '#4f46e5', border: '#818cf8', badge: 'bg-tea-500/20 text-tea-300 border-tea-500/30' },
+  'Northern Province': { bg: '#059669', border: '#34d399', badge: 'bg-tea-500/20 text-tea-300 border-tea-500/30' },
+  'Western Province': { bg: '#0284c7', border: '#38bdf8', badge: 'bg-tea-500/20 text-tea-300 border-tea-500/30' },
+  'Southern Province': { bg: '#d97706', border: '#fbbf24', badge: 'bg-saffron-500/20 text-saffron-300 border-saffron-500/30' },
+  'Eastern Province': { bg: '#7c3aed', border: '#a78bfa', badge: 'bg-tea-500/20 text-tea-300 border-tea-500/30' }
 };
 
 export const RwandaAdminMap: React.FC = () => {
@@ -380,15 +380,15 @@ export const RwandaAdminMap: React.FC = () => {
   return (
     <div
       id="rwanda-admin-spatial-map"
-      className={`bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col transition-all ${
+      className={`bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden flex flex-col transition-all ${
         isFullscreen ? 'fixed inset-4 z-50 shadow-2xl' : 'w-full'
       }`}
     >
       {/* Header & National GIS Controls */}
-      <div className="p-4 sm:p-5 bg-slate-900 text-white border-b border-slate-800 space-y-3.5">
+      <div className="p-4 sm:p-5 bg-tea-800 text-white border-b border-ink-800 space-y-3.5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/30">
+            <div className="w-10 h-10 rounded-2xl bg-tea-600 flex items-center justify-center text-white shadow-md shadow-blue-500/30">
               <Globe2 className="w-5 h-5" />
             </div>
             <div>
@@ -396,11 +396,11 @@ export const RwandaAdminMap: React.FC = () => {
                 <h2 className="text-lg font-bold tracking-tight text-white">
                   Rwanda National Spatial Map & GIS Registry
                 </h2>
-                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40">
+                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-tea-500/20 text-tea-300 border border-tea-500/40">
                   5 Provinces • 30 Districts
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-ink-400">
                 Interactive real-time map of rental listings across Kigali, Northern, Western, Southern, and Eastern provinces
               </p>
             </div>
@@ -409,11 +409,11 @@ export const RwandaAdminMap: React.FC = () => {
           {/* Quick Action Buttons */}
           <div className="flex items-center gap-2 flex-wrap">
             {/* View Mode Switcher */}
-            <div className="inline-flex rounded-xl bg-slate-800 p-1 border border-slate-700 text-xs font-semibold">
+            <div className="inline-flex rounded-xl bg-tea-800 p-1 border border-ink-700 text-xs font-semibold">
               <button
                 onClick={() => setViewMode('PINS')}
                 className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                  viewMode === 'PINS' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
+                  viewMode === 'PINS' ? 'bg-tea-600 text-white shadow-xs' : 'text-ink-400 hover:text-white'
                 }`}
               >
                 <MapPin className="w-3.5 h-3.5" />
@@ -422,26 +422,26 @@ export const RwandaAdminMap: React.FC = () => {
               <button
                 onClick={() => setViewMode('HEATMAP')}
                 className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                  viewMode === 'HEATMAP' ? 'bg-purple-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
+                  viewMode === 'HEATMAP' ? 'bg-tea-600 text-white shadow-xs' : 'text-ink-400 hover:text-white'
                 }`}
               >
-                <Flame className="w-3.5 h-3.5 text-amber-400" />
+                <Flame className="w-3.5 h-3.5 text-saffron-400" />
                 <span>Regional Density & Pricing</span>
               </button>
             </div>
 
             <button
               onClick={resetToAllRwanda}
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 rounded-xl bg-tea-800 hover:bg-tea-700 text-ink-200 border border-ink-700 text-xs font-semibold transition-colors flex items-center gap-1"
               title="Reset Zoom to Entire Country of Rwanda"
             >
-              <Compass className="w-3.5 h-3.5 text-blue-400" />
+              <Compass className="w-3.5 h-3.5 text-tea-400" />
               <span>All Rwanda</span>
             </button>
 
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+              className="p-2 rounded-xl bg-tea-800 hover:bg-tea-700 text-ink-300 transition-colors"
               title={isFullscreen ? 'Exit Fullscreen' : 'Expand to Fullscreen'}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -450,9 +450,9 @@ export const RwandaAdminMap: React.FC = () => {
         </div>
 
         {/* Province Filter Tabs */}
-        <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-xs">
-          <div className="flex items-center gap-1.5 text-slate-400 mr-1">
-            <Layers className="w-3.5 h-3.5 text-blue-400" />
+        <div className="pt-2 border-t border-ink-800/80 flex flex-wrap items-center gap-1.5 text-xs">
+          <div className="flex items-center gap-1.5 text-ink-400 mr-1">
+            <Layers className="w-3.5 h-3.5 text-tea-400" />
             <span className="font-bold">Province:</span>
           </div>
 
@@ -460,8 +460,8 @@ export const RwandaAdminMap: React.FC = () => {
             onClick={() => handleSelectProvince('ALL')}
             className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
               selectedProvince === 'ALL'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                ? 'bg-tea-600 text-white shadow-xs'
+                : 'bg-tea-800 hover:bg-tea-700 text-ink-300'
             }`}
           >
             All Rwanda ({properties.length})
@@ -476,13 +476,13 @@ export const RwandaAdminMap: React.FC = () => {
                 onClick={() => handleSelectProvince(prov)}
                 className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
                   isSelected
-                    ? 'bg-slate-100 text-slate-900 ring-2 ring-blue-500'
-                    : 'bg-slate-800/90 hover:bg-slate-700 text-slate-300'
+                    ? 'bg-stone-100 text-ink-900 ring-2 ring-tea-500'
+                    : 'bg-tea-800/90 hover:bg-tea-700 text-ink-300'
                 }`}
               >
                 <span>{prov}</span>
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                  isSelected ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'
+                  isSelected ? 'bg-tea-600 text-white' : 'bg-tea-700 text-ink-400'
                 }`}>
                   {count}
                 </span>
@@ -493,15 +493,15 @@ export const RwandaAdminMap: React.FC = () => {
 
         {/* City/Sector Sub-Pills for Selected Province */}
         <div className="flex flex-wrap items-center gap-1.5 text-[11px] overflow-x-auto pb-0.5">
-          <span className="text-slate-400 font-semibold mr-1 flex items-center gap-1">
-            <Navigation className="w-3 h-3 text-slate-500" />
+          <span className="text-ink-400 font-semibold mr-1 flex items-center gap-1">
+            <Navigation className="w-3 h-3 text-ink-500" />
             Key Hubs:
           </span>
 
           <button
             onClick={() => setSelectedLocation('ALL')}
             className={`px-2 py-0.5 rounded-lg font-medium transition-colors ${
-              selectedLocation === 'ALL' ? 'bg-blue-500/30 text-blue-300 font-bold' : 'text-slate-400 hover:text-slate-200'
+              selectedLocation === 'ALL' ? 'bg-tea-500/30 text-tea-300 font-bold' : 'text-ink-400 hover:text-ink-200'
             }`}
           >
             All Areas
@@ -519,8 +519,8 @@ export const RwandaAdminMap: React.FC = () => {
                   onClick={() => focusOnLocation(locName)}
                   className={`px-2.5 py-0.5 rounded-lg transition-all flex items-center gap-1 ${
                     isSel
-                      ? 'bg-indigo-600 text-white font-bold'
-                      : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+                      ? 'bg-tea-600 text-white font-bold'
+                      : 'bg-tea-800/60 text-ink-300 hover:bg-tea-700'
                   }`}
                 >
                   <span>{locName.split(' ')[0]}</span>
@@ -532,7 +532,7 @@ export const RwandaAdminMap: React.FC = () => {
       </div>
 
       {/* Main Map Body & Slide-out Info Panel */}
-      <div className="relative flex-1 min-h-[480px] lg:min-h-[560px] bg-slate-100 flex flex-col md:flex-row">
+      <div className="relative flex-1 min-h-[480px] lg:min-h-[560px] bg-stone-100 flex flex-col md:flex-row">
         
         {/* Leaflet Render Canvas */}
         <div
@@ -543,31 +543,31 @@ export const RwandaAdminMap: React.FC = () => {
 
         {/* Selected Property Popup Drawer */}
         {selectedProperty && (
-          <div className="w-full md:w-80 lg:w-96 bg-white border-t md:border-t-0 md:border-l border-slate-200 p-5 shadow-xl z-20 flex flex-col justify-between overflow-y-auto max-h-[480px] lg:max-h-[560px] text-left">
+          <div className="w-full md:w-80 lg:w-96 bg-white border-t md:border-t-0 md:border-l border-stone-200 p-5 shadow-xl z-20 flex flex-col justify-between overflow-y-auto max-h-[480px] lg:max-h-[560px] text-left">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-tea-50 text-tea-700 border border-tea-200">
                   {selectedProperty.propertyType} • {selectedProperty.locationSector}
                 </span>
                 <button
                   onClick={() => setSelectedProperty(null)}
-                  className="text-xs font-bold text-slate-400 hover:text-slate-600 px-2 py-1 rounded-lg hover:bg-slate-100"
+                  className="text-xs font-bold text-ink-400 hover:text-ink-600 px-2 py-1 rounded-lg hover:bg-stone-100"
                 >
                   ✕ Close
                 </button>
               </div>
 
-              <div className="relative rounded-xl overflow-hidden aspect-video bg-slate-100">
+              <div className="relative rounded-xl overflow-hidden aspect-video bg-stone-100">
                 <img
                   src={selectedProperty.images[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop&q=80'}
                   alt={selectedProperty.title}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-slate-900/80 text-white text-[11px] font-bold backdrop-blur">
+                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-tea-800/80 text-white text-[11px] font-bold backdrop-blur">
                   RWF {selectedProperty.monthlyRent.toLocaleString()} / mo
                 </div>
                 {reportedPropertyIds.has(selectedProperty.id) && (
-                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-rose-600 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-red-700 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
                     <AlertTriangle className="w-3 h-3" />
                     <span>Reported Listing</span>
                   </div>
@@ -575,51 +575,51 @@ export const RwandaAdminMap: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="font-bold text-sm text-slate-900 line-clamp-2">
+                <h3 className="font-bold text-sm text-ink-900 line-clamp-2">
                   {selectedProperty.title}
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                <p className="text-xs text-ink-500 mt-0.5 flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-ink-400 shrink-0" />
                   <span className="truncate">{selectedProperty.address}</span>
                 </p>
-                <p className="text-[11px] text-blue-600 font-semibold mt-0.5">
+                <p className="text-[11px] text-tea-600 font-semibold mt-0.5">
                   {selectedProperty.province || 'Kigali City'} • {selectedProperty.district || 'Gasabo'}
                 </p>
               </div>
 
               {/* Property quick specs */}
-              <div className="grid grid-cols-3 gap-2 py-2 border-y border-slate-100 text-center text-xs">
-                <div className="bg-slate-50 p-2 rounded-lg">
-                  <span className="text-[10px] text-slate-400 block font-medium">Bedrooms</span>
-                  <span className="font-bold text-slate-800">{selectedProperty.bedrooms} Beds</span>
+              <div className="grid grid-cols-3 gap-2 py-2 border-y border-stone-100 text-center text-xs">
+                <div className="bg-stone-50 p-2 rounded-lg">
+                  <span className="text-[10px] text-ink-400 block font-medium">Bedrooms</span>
+                  <span className="font-bold text-ink-800">{selectedProperty.bedrooms} Beds</span>
                 </div>
-                <div className="bg-slate-50 p-2 rounded-lg">
-                  <span className="text-[10px] text-slate-400 block font-medium">Bathrooms</span>
-                  <span className="font-bold text-slate-800">{selectedProperty.bathrooms} Baths</span>
+                <div className="bg-stone-50 p-2 rounded-lg">
+                  <span className="text-[10px] text-ink-400 block font-medium">Bathrooms</span>
+                  <span className="font-bold text-ink-800">{selectedProperty.bathrooms} Baths</span>
                 </div>
-                <div className="bg-slate-50 p-2 rounded-lg">
-                  <span className="text-[10px] text-slate-400 block font-medium">Status</span>
-                  <span className={`font-bold ${selectedProperty.isAvailable ? 'text-emerald-600' : 'text-slate-500'}`}>
+                <div className="bg-stone-50 p-2 rounded-lg">
+                  <span className="text-[10px] text-ink-400 block font-medium">Status</span>
+                  <span className={`font-bold ${selectedProperty.isAvailable ? 'text-tea-600' : 'text-ink-500'}`}>
                     {selectedProperty.isAvailable ? 'Available' : 'Occupied'}
                   </span>
                 </div>
               </div>
 
               {/* Landlord Contact Info */}
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-1 text-xs">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Landlord Details</span>
-                <div className="font-bold text-slate-900">{selectedProperty.landlordName}</div>
-                <div className="text-slate-500 font-mono text-[11px]">
+              <div className="bg-stone-50 p-3 rounded-xl border border-stone-200/80 space-y-1 text-xs">
+                <span className="text-[10px] uppercase font-bold text-ink-400">Landlord Details</span>
+                <div className="font-bold text-ink-900">{selectedProperty.landlordName}</div>
+                <div className="text-ink-500 font-mono text-[11px]">
                   {selectedProperty.landlordPhone || '+250 788 000 000'}
                 </div>
               </div>
             </div>
 
             {/* Admin Direct Actions on Selected Property */}
-            <div className="space-y-2 pt-3 border-t border-slate-100">
+            <div className="space-y-2 pt-3 border-t border-stone-100">
               <button
                 onClick={() => openModal('PROPERTY_DETAILS', { property: selectedProperty })}
-                className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                className="w-full py-2 px-3 rounded-xl bg-tea-600 hover:bg-tea-700 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs"
               >
                 <Eye className="w-3.5 h-3.5" />
                 <span>Full Property Details & Tenant View</span>
@@ -628,7 +628,7 @@ export const RwandaAdminMap: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => togglePropertyAvailability(selectedProperty.id)}
-                  className="flex-1 py-1.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                  className="flex-1 py-1.5 px-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-ink-700 text-xs font-semibold transition-colors"
                 >
                   {selectedProperty.isAvailable ? 'Mark Occupied' : 'Mark Available'}
                 </button>
@@ -638,7 +638,7 @@ export const RwandaAdminMap: React.FC = () => {
                     deleteProperty(selectedProperty.id);
                     setSelectedProperty(null);
                   }}
-                  className="py-1.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors"
+                  className="py-1.5 px-3 rounded-xl bg-red-50 hover:bg-red-50 text-red-800 text-xs font-semibold transition-colors"
                   title="Remove listing from platform"
                 >
                   Delete
@@ -650,13 +650,13 @@ export const RwandaAdminMap: React.FC = () => {
       </div>
 
       {/* Rwanda Province Breakdown & Market Pricing Matrix */}
-      <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 text-left">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 mb-3 border-b border-slate-200/80 gap-2">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-            <Layers className="w-4 h-4 text-blue-600" />
+      <div className="p-4 sm:p-5 bg-stone-50 border-t border-stone-200 text-left">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 mb-3 border-b border-stone-200/80 gap-2">
+          <div className="flex items-center gap-2 text-xs font-bold text-ink-800">
+            <Layers className="w-4 h-4 text-tea-600" />
             <span>Rwanda Regional Rental Index & Market Pricing Matrix</span>
           </div>
-          <span className="text-[11px] text-slate-500">
+          <span className="text-[11px] text-ink-500">
             Live metrics aggregated from 5 Provinces and Secondary Cities
           </span>
         </div>
@@ -677,25 +677,25 @@ export const RwandaAdminMap: React.FC = () => {
                 onClick={() => handleSelectProvince(province)}
                 className={`p-3.5 rounded-2xl border text-left transition-all group ${
                   isSel
-                    ? 'bg-blue-50/80 border-blue-300 ring-2 ring-blue-500/20 shadow-xs'
-                    : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-xs'
+                    ? 'bg-tea-50/80 border-tea-300 ring-2 ring-tea-500/20 shadow-xs'
+                    : 'bg-white border-stone-200 hover:border-stone-300 hover:shadow-xs'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                  <span className="text-xs font-bold text-ink-900 group-hover:text-tea-600 transition-colors">
                     {province}
                   </span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 text-ink-600">
                     {RWANDA_DISTRICTS_BY_PROVINCE[province].length} Districts
                   </span>
                 </div>
-                <div className="text-base font-bold text-slate-900 mt-1.5">
-                  {count} <span className="text-xs font-normal text-slate-500">active listings</span>
+                <div className="text-base font-bold text-ink-900 mt-1.5">
+                  {count} <span className="text-xs font-normal text-ink-500">active listings</span>
                 </div>
-                <div className="text-xs text-blue-600 font-semibold font-mono mt-0.5">
+                <div className="text-xs text-tea-600 font-semibold font-mono mt-0.5">
                   {avgRent > 0 ? `Avg ~${(avgRent / 1000).toFixed(0)}k RWF/mo` : 'Market Index Active'}
                 </div>
-                <div className="mt-2 text-[10px] text-slate-400 truncate">
+                <div className="mt-2 text-[10px] text-ink-400 truncate">
                   {RWANDA_DISTRICTS_BY_PROVINCE[province].slice(0, 3).join(', ')}...
                 </div>
               </button>

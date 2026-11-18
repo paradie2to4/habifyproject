@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { TAB_PATHS, tabForPath, propertyPath } from '../routes';
 import {
   User,
   Property,
   TenantPreferences,
+  AppNotification,
   ViewingRequest,
   Inquiry,
   PropertyReport,
@@ -59,6 +60,19 @@ import {
   UNAUTHORIZED_EVENT
 } from '../services/api';
 import { dashboardForRole } from '../utils/roles';
+import {
+  fetchNotificationsApi,
+  markNotificationReadApi,
+  markAllNotificationsReadApi,
+  updateProfileApi,
+  fetchTenancyApi,
+  createLeaseApi,
+  updateLeaseApi,
+  recordPaymentApi,
+  confirmPaymentApi,
+  createTicketApi,
+  updateTicketApi
+} from '../services/platformApi';
 import { normalizeImageList } from '../utils/images';
 
 interface Toast {
@@ -116,13 +130,29 @@ interface AppContextType {
 
   // Landlord Operations (Leases, Payments, Maintenance)
   leases: LeaseAgreement[];
-  addLease: (lease: Omit<LeaseAgreement, 'id'>) => void;
-  updateLeaseStatus: (id: string, status: LeaseAgreement['status'], paymentStatus?: LeaseAgreement['paymentStatus']) => void;
+  addLease: (lease: Omit<LeaseAgreement, 'id'>) => Promise<boolean>;
+  updateLeaseStatus: (id: string, status: LeaseAgreement['status'], paymentStatus?: LeaseAgreement['paymentStatus']) => Promise<void>;
   payments: RentPayment[];
-  recordPayment: (payment: Omit<RentPayment, 'id' | 'receiptNumber' | 'status'>) => RentPayment;
+  recordPayment: (payment: Omit<RentPayment, 'id' | 'receiptNumber' | 'status'>) => Promise<RentPayment | null>;
+  confirmPayment: (id: string) => Promise<void>;
   maintenanceTickets: MaintenanceTicket[];
-  addMaintenanceTicket: (ticket: Omit<MaintenanceTicket, 'id' | 'reportedDate' | 'status'>) => void;
-  updateMaintenanceTicket: (id: string, updates: Partial<MaintenanceTicket>) => void;
+  addMaintenanceTicket: (ticket: Omit<MaintenanceTicket, 'id' | 'reportedDate' | 'status'>) => Promise<boolean>;
+  updateMaintenanceTicket: (id: string, updates: Partial<MaintenanceTicket>) => Promise<void>;
+
+  // Notifications (bell)
+  notifications: AppNotification[];
+  unreadNotifications: number;
+  refreshNotifications: () => Promise<void>;
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
+
+  // Account
+  updateProfile: (fields: { fullName?: string; phoneNumber?: string; avatarUrl?: string }) => Promise<boolean>;
+  isLive: boolean;
+
+  // Conversations
+  patchInquiry: (id: string, updates: Partial<Inquiry>) => void;
+  refreshInquiries: () => Promise<void>;
 
   // Search & Filters
   filters: FilterState;
@@ -352,6 +382,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setInquiries([]);
       setFavorites([]);
       setReports([]);
+      setLeases([]);
+      setPayments([]);
+      setMaintenanceTickets([]);
       return;
     }
     setSyncing(true);
@@ -368,6 +401,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (user.role === 'TENANT') {
         const prefs = await fetchPreferencesApi(user.id);
         if (prefs) setPreferences(prev => ({ ...prev, ...prefs }));
+      }
+      if (user.role === 'TENANT' || user.role === 'LANDLORD') {
+        const tenancy = await fetchTenancyApi();
+        setLeases(tenancy.leases);
+        setPayments(tenancy.payments);
+        setMaintenanceTickets(tenancy.tickets);
       }
       if (user.role === 'LANDLORD') {
         // Public listing feed hides unavailable units; landlords need all of their own
@@ -452,16 +491,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [reports, backendStatus]);
 
   useEffect(() => {
+    if (backendStatus !== 'offline') return; // live data lives in the API, not the browser
     localStorage.setItem('smartrental_leases', JSON.stringify(leases));
-  }, [leases]);
+  }, [leases, backendStatus]);
 
   useEffect(() => {
+    if (backendStatus !== 'offline') return; // live data lives in the API, not the browser
     localStorage.setItem('smartrental_payments', JSON.stringify(payments));
-  }, [payments]);
+  }, [payments, backendStatus]);
 
   useEffect(() => {
+    if (backendStatus !== 'offline') return; // live data lives in the API, not the browser
     localStorage.setItem('smartrental_maintenance', JSON.stringify(maintenanceTickets));
-  }, [maintenanceTickets]);
+  }, [maintenanceTickets, backendStatus]);
 
   // Toast helper
   const addToast = (type: Toast['type'], message: string) => {
@@ -849,65 +891,244 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setModalData(null);
   };
 
-  const addLease = (lease: Omit<LeaseAgreement, 'id'>) => {
-    const newLease: LeaseAgreement = {
-      ...lease,
-      id: `lease-${Date.now().toString().slice(-4)}`
-    };
-    setLeases(prev => [newLease, ...prev]);
+  const addLease = async (lease: Omit<LeaseAgreement, 'id'>): Promise<boolean> => {
+    if (isLive) {
+      try {
+        const saved = await createLeaseApi({
+          propertyId: lease.propertyId,
+          tenantName: lease.tenantName,
+          tenantPhone: lease.tenantPhone,
+          tenantEmail: lease.tenantEmail,
+          monthlyRent: lease.monthlyRent,
+          securityDeposit: lease.securityDeposit,
+          startDate: lease.startDate,
+          endDate: lease.endDate || null,
+          paymentDueDay: lease.paymentDueDay
+        });
+        setLeases(prev => [saved, ...prev]);
+        // The server marks the home as rented
+        setProperties(prev => prev.map(p => (p.id === saved.propertyId ? { ...p, isAvailable: false } : p)));
+        addToast(
+          'success',
+          saved.tenantId
+            ? `Lease created. ${lease.tenantName} can now see it in their dashboard.`
+            : `Lease created. ${lease.tenantName} will see it once they sign up with ${lease.tenantEmail || 'their email'}.`
+        );
+        return true;
+      } catch (err) {
+        addToast('error', `Could not create lease: ${describeError(err)}`);
+        return false;
+      }
+    }
+    setLeases(prev => [{ ...lease, id: `lease-${Date.now().toString().slice(-4)}` }, ...prev]);
     addToast('success', `Created active lease agreement for ${lease.tenantName}`);
+    return true;
   };
 
-  const updateLeaseStatus = (id: string, status: LeaseAgreement['status'], paymentStatus?: LeaseAgreement['paymentStatus']) => {
-    setLeases(prev => prev.map(l => l.id === id ? {
-      ...l,
-      status,
-      paymentStatus: paymentStatus || l.paymentStatus
-    } : l));
+  const updateLeaseStatus = async (id: string, status: LeaseAgreement['status'], paymentStatus?: LeaseAgreement['paymentStatus']) => {
+    if (isLive) {
+      try {
+        const saved = await updateLeaseApi(id, { status, ...(paymentStatus ? { paymentStatus } : {}) });
+        setLeases(prev => prev.map(l => (l.id === id ? saved : l)));
+        if (status !== 'ACTIVE') setProperties(prev => prev.map(p => (p.id === saved.propertyId ? { ...p, isAvailable: true } : p)));
+        addToast('info', `Lease marked ${status.toLowerCase().replace('_', ' ')}`);
+      } catch (err) {
+        addToast('error', `Could not update lease: ${describeError(err)}`);
+      }
+      return;
+    }
+    setLeases(prev => prev.map(l => (l.id === id ? { ...l, status, paymentStatus: paymentStatus || l.paymentStatus } : l)));
     addToast('info', `Lease status updated to ${status}`);
   };
 
-  const recordPayment = (paymentData: Omit<RentPayment, 'id' | 'receiptNumber' | 'status'>): RentPayment => {
+  /** Landlord records a payment (verified) — or a tenant reports one (pending until confirmed). */
+  const recordPayment = async (
+    paymentData: Omit<RentPayment, 'id' | 'receiptNumber' | 'status'>
+  ): Promise<RentPayment | null> => {
+    if (isLive) {
+      try {
+        const saved = await recordPaymentApi({
+          leaseId: paymentData.leaseId,
+          amountRwf: paymentData.amountRwf,
+          paymentMethod: paymentData.paymentMethod,
+          transactionReference: paymentData.transactionReference,
+          period: paymentData.period,
+          paymentDate: paymentData.paymentDate,
+          notes: paymentData.notes
+        });
+        setPayments(prev => [saved, ...prev]);
+        if (saved.status === 'VERIFIED') {
+          setLeases(prev => prev.map(l => (l.id === saved.leaseId ? { ...l, lastPaymentDate: saved.paymentDate, paymentStatus: 'PAID' } : l)));
+          addToast('success', `Payment recorded · receipt ${saved.receiptNumber}`);
+        } else {
+          addToast('success', 'Payment reported. Your landlord will confirm it, and you’ll get the receipt.');
+        }
+        return saved;
+      } catch (err) {
+        addToast('error', `Payment not saved: ${describeError(err)}`);
+        return null;
+      }
+    }
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const randSuffix = Math.floor(1000 + Math.random() * 9000);
-    const receiptNumber = `RW-REC-${dateStr}-${randSuffix}`;
-
     const newPayment: RentPayment = {
       ...paymentData,
       id: `pay-${Date.now().toString().slice(-4)}`,
-      receiptNumber,
+      receiptNumber: `RW-REC-${dateStr}-${Math.floor(1000 + Math.random() * 9000)}`,
       status: 'VERIFIED'
     };
-
     setPayments(prev => [newPayment, ...prev]);
-
-    // Update lease payment status if found
     if (paymentData.leaseId) {
-      setLeases(prev => prev.map(l => l.id === paymentData.leaseId ? {
-        ...l,
-        lastPaymentDate: paymentData.paymentDate,
-        paymentStatus: 'PAID'
-      } : l));
+      setLeases(prev => prev.map(l => (l.id === paymentData.leaseId ? { ...l, lastPaymentDate: paymentData.paymentDate, paymentStatus: 'PAID' } : l)));
     }
-
-    addToast('success', `Logged ${paymentData.amountRwf.toLocaleString()} RWF rent payment (Receipt #${receiptNumber})`);
+    addToast('success', `Logged ${paymentData.amountRwf.toLocaleString()} RWF rent payment (Receipt #${newPayment.receiptNumber})`);
     return newPayment;
   };
 
-  const addMaintenanceTicket = (ticket: Omit<MaintenanceTicket, 'id' | 'reportedDate' | 'status'>) => {
-    const newTicket: MaintenanceTicket = {
-      ...ticket,
-      id: `maint-${Date.now().toString().slice(-4)}`,
-      status: 'REPORTED',
-      reportedDate: new Date().toISOString().slice(0, 10)
-    };
-    setMaintenanceTickets(prev => [newTicket, ...prev]);
-    addToast('success', `Maintenance request "${ticket.title}" registered successfully`);
+  const confirmPayment = async (id: string) => {
+    try {
+      const saved = await confirmPaymentApi(id);
+      setPayments(prev => prev.map(p => (p.id === id ? saved : p)));
+      if (saved.period === new Date().toISOString().slice(0, 7)) {
+        setLeases(prev => prev.map(l => (l.id === saved.leaseId ? { ...l, lastPaymentDate: saved.paymentDate, paymentStatus: 'PAID' } : l)));
+      }
+      addToast('success', `Payment confirmed · receipt ${saved.receiptNumber} sent to the tenant`);
+    } catch (err) {
+      addToast('error', `Could not confirm payment: ${describeError(err)}`);
+    }
   };
 
-  const updateMaintenanceTicket = (id: string, updates: Partial<MaintenanceTicket>) => {
-    setMaintenanceTickets(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  const addMaintenanceTicket = async (ticket: Omit<MaintenanceTicket, 'id' | 'reportedDate' | 'status'>): Promise<boolean> => {
+    if (isLive) {
+      try {
+        const saved = await createTicketApi({
+          propertyId: ticket.propertyId,
+          title: ticket.title,
+          description: ticket.description,
+          category: ticket.category,
+          priority: ticket.priority,
+          estimatedCostRwf: ticket.estimatedCostRwf || undefined,
+          contractorName: ticket.contractorName,
+          photos: ticket.photos || []
+        });
+        setMaintenanceTickets(prev => [saved, ...prev]);
+        addToast('success', currentUser?.role === 'TENANT' ? 'Repair request sent to your landlord.' : `Repair “${saved.title}” logged.`);
+        return true;
+      } catch (err) {
+        addToast('error', `Could not save the repair request: ${describeError(err)}`);
+        return false;
+      }
+    }
+    setMaintenanceTickets(prev => [
+      { ...ticket, id: `maint-${Date.now().toString().slice(-4)}`, status: 'REPORTED', reportedDate: new Date().toISOString().slice(0, 10) },
+      ...prev
+    ]);
+    addToast('success', `Maintenance request "${ticket.title}" registered successfully`);
+    return true;
+  };
+
+  const updateMaintenanceTicket = async (id: string, updates: Partial<MaintenanceTicket>) => {
+    if (isLive) {
+      try {
+        const body: Record<string, unknown> = {};
+        (['status', 'priority', 'contractorName', 'landlordNotes', 'estimatedCostRwf', 'actualCostRwf'] as const).forEach(k => {
+          if (updates[k] !== undefined) body[k] = updates[k];
+        });
+        const saved = await updateTicketApi(id, body);
+        setMaintenanceTickets(prev => prev.map(t => (t.id === id ? saved : t)));
+        addToast('info', 'Repair request updated.');
+      } catch (err) {
+        addToast('error', `Could not update the repair request: ${describeError(err)}`);
+      }
+      return;
+    }
+    setMaintenanceTickets(prev => prev.map(t => (t.id === id ? { ...t, ...updates } : t)));
     addToast('info', 'Maintenance ticket updated.');
+  };
+
+  // ---------------------------------------------------------------- notifications
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  const refreshNotifications = useCallback(async () => {
+    if (!isLive) return;
+    try {
+      const { items, unread } = await fetchNotificationsApi();
+      setNotifications(items);
+      setUnreadNotifications(unread);
+    } catch {
+      /* the bell is best-effort; never toast for background polling */
+    }
+  }, [isLive]);
+
+  // Poll while signed in; refresh immediately when the tab regains focus
+  useEffect(() => {
+    if (!isLive) {
+      setNotifications([]);
+      setUnreadNotifications(0);
+      return;
+    }
+    void refreshNotifications();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void refreshNotifications();
+    }, 45_000);
+    const onFocus = () => void refreshNotifications();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [isLive, refreshNotifications]);
+
+  // A new notification usually means new data elsewhere (a reply, an approved viewing…)
+  const lastUnread = useRef(0);
+  useEffect(() => {
+    if (unreadNotifications > lastUnread.current) void refreshFromServer();
+    lastUnread.current = unreadNotifications;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unreadNotifications]);
+
+  const markNotificationRead = async (id: string) => {
+    setNotifications(prev => prev.map(n => (n.id === id && !n.readAt ? { ...n, readAt: new Date().toISOString() } : n)));
+    setUnreadNotifications(prev => Math.max(0, prev - (notifications.find(n => n.id === id && !n.readAt) ? 1 : 0)));
+    await markNotificationReadApi(id).catch(() => undefined);
+  };
+
+  const markAllNotificationsRead = async () => {
+    setNotifications(prev => prev.map(n => (n.readAt ? n : { ...n, readAt: new Date().toISOString() })));
+    setUnreadNotifications(0);
+    await markAllNotificationsReadApi().catch(() => undefined);
+  };
+
+  // ---------------------------------------------------------------- profile
+  const updateProfile = async (fields: { fullName?: string; phoneNumber?: string; avatarUrl?: string }): Promise<boolean> => {
+    if (!currentUser) return false;
+    if (isLive) {
+      try {
+        const saved = await updateProfileApi(fields);
+        setCurrentUser(saved);
+        addToast('success', 'Profile saved.');
+        return true;
+      } catch (err) {
+        addToast('error', `Profile not saved: ${describeError(err)}`);
+        return false;
+      }
+    }
+    setCurrentUser({ ...currentUser, ...fields });
+    addToast('success', 'Profile details updated.');
+    return true;
+  };
+
+  /** Keep a conversation's summary in sync after sending or reading in the thread view. */
+  const patchInquiry = (id: string, updates: Partial<Inquiry>) =>
+    setInquiries(prev => prev.map(i => (i.id === id ? { ...i, ...updates } : i)));
+
+  const refreshInquiries = async () => {
+    if (!isLive || !currentUser || currentUser.role === 'ADMIN') return;
+    try {
+      setInquiries(await fetchInquiriesApi(currentUser));
+    } catch {
+      /* best-effort */
+    }
   };
 
   const resetAllSeedData = () => {
@@ -975,6 +1196,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateLeaseStatus,
         payments,
         recordPayment,
+        confirmPayment,
+        notifications,
+        unreadNotifications,
+        refreshNotifications,
+        markNotificationRead,
+        markAllNotificationsRead,
+        updateProfile,
+        isLive,
+        patchInquiry,
+        refreshInquiries,
         maintenanceTickets,
         addMaintenanceTicket,
         updateMaintenanceTicket,

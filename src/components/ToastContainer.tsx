@@ -6,7 +6,7 @@ const STYLES = {
   success: { Icon: CheckCircle2, chip: 'bg-tea-50 text-tea-700' },
   info: { Icon: Info, chip: 'bg-stone-100 text-ink-700' },
   warning: { Icon: AlertTriangle, chip: 'bg-saffron-50 text-saffron-700' },
-  error: { Icon: AlertCircle, chip: 'bg-red-50 text-red-700' }
+  error: { Icon: AlertCircle, chip: 'bg-red-50 text-red-800' }
 } as const;
 
 export const ToastContainer: React.FC = () => {
