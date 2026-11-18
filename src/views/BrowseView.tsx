@@ -180,7 +180,7 @@ export const BrowseView: React.FC = () => {
           <div className="flex flex-col justify-center max-w-xl">
             <span className="eyebrow inline-flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-saffron-500" aria-hidden />
-              {results.length > 0 ? `${results.length} homes across Rwanda` : 'Homes across Rwanda'}
+              {!loading && results.length > 0 ? `${results.length} homes across Rwanda` : 'Homes across Rwanda'}
             </span>
             <h1 className="mt-4 font-display font-bold text-ink-900 text-[2.6rem] leading-[1.02] sm:text-6xl xl:text-[4.25rem]">
               Find where you <span className="text-tea-700">belong</span><span className="text-saffron-500">.</span>

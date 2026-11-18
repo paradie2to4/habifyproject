@@ -177,7 +177,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* use default */ }
     }
-    return SEED_USERS[0]; // Default to Tenant (Claire)
+    return null; // Visitors start signed out
   });
 
   const [allUsers, setAllUsers] = useState<User[]>(() => {

@@ -257,19 +257,32 @@ export function toBackendProperty(property: Partial<Property> & { title: string 
   };
 }
 
+/**
+ * A hosted API (e.g. Render's free plan) can take up to a minute to wake from sleep,
+ * so keep retrying for a while instead of dropping visitors into demo data.
+ * A local API (relative /api) is either running or not, so fail fast there.
+ */
 export async function checkBackendHealth(): Promise<boolean> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 3500);
-  try {
-    const res = await fetch(healthUrl(), { signal: controller.signal });
-    if (!res.ok) return false;
-    const body = await res.json().catch(() => null);
-    return !body?.status || body.status === 'UP';
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timer);
+  const hosted = API_BASE.startsWith('http');
+  const deadline = Date.now() + (hosted ? 90_000 : 3_500);
+  while (Date.now() < deadline) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), Math.min(hosted ? 20_000 : 3_500, deadline - Date.now()));
+    try {
+      const res = await fetch(healthUrl(), { signal: controller.signal });
+      if (res.ok) {
+        const body = await res.json().catch(() => null);
+        if (!body?.status || body.status === 'UP') return true;
+      }
+    } catch {
+      /* asleep, starting up, or unreachable — retry below */
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!hosted) return false;
+    await new Promise(r => setTimeout(r, 2_000));
   }
+  return false;
 }
 
 export async function fetchProperties(params?: {

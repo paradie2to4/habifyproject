@@ -213,6 +213,13 @@
     @apply text-tea-700 hover:text-tea-800 transition-colors;
   }
 
+  /* Native dropdown lists don't inherit the theme; set both colors explicitly */
+  select option,
+  select optgroup {
+    background-color: var(--color-white);
+    color: var(--color-ink-900);
+  }
+
   ::selection {
     background: var(--color-saffron-200);
     color: var(--color-ink-900);
