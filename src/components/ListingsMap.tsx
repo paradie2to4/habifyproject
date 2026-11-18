@@ -9,6 +9,8 @@ interface ListingsMapProps {
   onSelect?: (property: Property) => void;
   /** Single-listing mode: show one pin, no price pills, fixed zoom. */
   single?: boolean;
+  /** Driving route to draw (single mode): path as [lat, lng] points plus the starting point. */
+  route?: { path: [number, number][]; origin: [number, number] } | null;
   className?: string;
 }
 
@@ -30,8 +32,10 @@ export const ListingsMap: React.FC<ListingsMapProps> = ({
   onHover,
   onSelect,
   single = false,
+  route = null,
   className = ''
 }) => {
+  const routeLayerRef = useRef<L.LayerGroup | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -45,7 +49,7 @@ export const ListingsMap: React.FC<ListingsMapProps> = ({
     const map = L.map(containerRef.current, {
       center: KIGALI,
       zoom: 12,
-      zoomControl: !single,
+      zoomControl: true,
       scrollWheelZoom: !single,
       attributionControl: true
     });
@@ -54,6 +58,7 @@ export const ListingsMap: React.FC<ListingsMapProps> = ({
       maxZoom: 18
     }).addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
+    routeLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
     // Leaflet measures its container on init; re-measure once layout settles
@@ -115,6 +120,23 @@ export const ListingsMap: React.FC<ListingsMapProps> = ({
       });
     }
   }, [properties, single]);
+
+  // Driving route: a casing + line (reads on light and dark tiles) and a "You" marker
+  useEffect(() => {
+    const map = mapRef.current;
+    const layer = routeLayerRef.current;
+    if (!map || !layer) return;
+    layer.clearLayers();
+    if (!route || route.path.length < 2) return;
+    L.polyline(route.path, { color: '#ffffff', weight: 9, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }).addTo(layer);
+    L.polyline(route.path, { color: '#1F5C45', weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' }).addTo(layer);
+    L.marker(route.origin, {
+      icon: L.divIcon({ className: 'price-marker-wrap', html: '<span class="you-marker"><span></span></span>', iconSize: [0, 0] }),
+      title: 'Your location',
+      keyboard: false
+    }).addTo(layer);
+    map.fitBounds(L.latLngBounds(route.path), { padding: [36, 36] });
+  }, [route]);
 
   // Highlight the active marker without rebuilding
   useEffect(() => {

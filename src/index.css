@@ -358,6 +358,26 @@
 }
 .leaflet-div-icon.price-marker-wrap { background: transparent; border: 0; }
 
+/* "You are here" for directions: blue-free tea dot with a soft pulse */
+.you-marker {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: #1F5C45;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
+}
+.you-marker span {
+  position: absolute;
+  inset: -9px;
+  border-radius: 9999px;
+  background: rgb(31 92 69 / 0.25);
+  animation: youPulse 1.8s ease-out infinite;
+}
+@keyframes youPulse { from { transform: scale(0.5); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }
+
 /* ---------- Utilities ---------- */
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }

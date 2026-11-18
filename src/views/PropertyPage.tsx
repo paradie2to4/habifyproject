@@ -6,7 +6,7 @@ import { fetchPropertyApi } from '../services/api';
 import { normalizeImageList } from '../utils/images';
 import { PropertyImage } from '../components/PropertyImage';
 import { PropertyCard } from '../components/PropertyCard';
-import { ListingsMap } from '../components/ListingsMap';
+import { PropertyDirections } from '../components/PropertyDirections';
 import {
   ArrowLeft,
   Heart,
@@ -420,14 +420,8 @@ export const PropertyPage: React.FC = () => {
             )}
           </section>
 
-          {/* Location */}
-          <section>
-            <h2 className="text-xl font-semibold text-ink-900 mb-1">Where you’ll be</h2>
-            <p className="text-sm text-stone-700 mb-4">{property.locationSector}{property.district ? `, ${property.district}` : ''}</p>
-            <div className="h-72 rounded-2xl overflow-hidden border border-stone-200">
-              <ListingsMap properties={[property]} single />
-            </div>
-          </section>
+          {/* Location and driving directions */}
+          <PropertyDirections property={property} />
 
           {/* Landlord */}
           <section className="flex flex-col sm:flex-row sm:items-center gap-5 rounded-2xl border border-stone-200 bg-white p-6">
