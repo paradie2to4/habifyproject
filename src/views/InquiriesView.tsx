@@ -22,7 +22,7 @@ const timeLabel = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: 
 type Pending = ThreadMessage & { pending?: boolean; failed?: boolean };
 
 export const InquiriesView: React.FC = () => {
-  const { inquiries, currentUser, setCurrentTab, isLive, patchInquiry, refreshInquiries, properties } = useApp();
+  const { inquiries, currentUser, setCurrentTab, isLive, patchInquiry, refreshInquiries, properties, syncing, backendStatus } = useApp();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
@@ -56,14 +56,19 @@ export const InquiriesView: React.FC = () => {
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);
   }, []);
+  const loaded = !syncing && backendStatus !== 'connecting';
   useEffect(() => {
-    if (wide && !params.get('thread') && threads[0]) {
+    if (!loaded || !threads[0]) return;
+    const current = params.get('thread');
+    // Open the latest thread on wide screens, and recover from links to threads that don't exist
+    if ((!current && wide) || (current && !threads.some(t => t.id === current))) {
       const next = new URLSearchParams(params);
-      next.set('thread', threads[0].id);
+      if (wide) next.set('thread', threads[0].id);
+      else next.delete('thread');
       setParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threads[0]?.id, wide]);
+  }, [threads[0]?.id, wide, loaded, params.get('thread')]);
   const selected = threads.find(t => t.id === selectedId);
   const otherName = (t: Inquiry) => (isLandlord ? t.tenantName : t.landlordName) || 'Habify user';
   const photoFor = (t: Inquiry) => t.propertyImage || properties.find(p => p.id === t.propertyId)?.images?.[0] || '';
@@ -149,8 +154,11 @@ export const InquiriesView: React.FC = () => {
   useEffect(() => {
     const el = textRef.current;
     if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+    // Measure content height, then only show a scrollbar once we hit the cap
+    el.style.height = '0px';
+    const content = el.scrollHeight;
+    el.style.height = `${Math.min(content, 144)}px`;
+    el.style.overflowY = content > 144 ? 'auto' : 'hidden';
   }, [draft]);
 
   if (threads.length === 0) {
@@ -303,34 +311,40 @@ export const InquiriesView: React.FC = () => {
                 e.preventDefault();
                 void send(draft);
               }}
-              className="p-3 sm:p-4 border-t border-stone-200 flex items-end gap-2 bg-white shrink-0"
+              className="px-3 sm:px-4 pt-3 pb-2 border-t border-stone-200 bg-white shrink-0"
             >
-              <label htmlFor="thread-composer" className="sr-only">Write a message</label>
-              <textarea
-                id="thread-composer"
-                ref={textRef}
-                rows={1}
-                value={draft}
-                disabled={!isLive}
-                onChange={e => setDraft(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    void send(draft);
-                  }
-                }}
-                maxLength={4000}
-                placeholder={isLive ? `Message ${otherName(selected).split(' ')[0]}…` : 'Connect to the server to reply'}
-                className="flex-1 min-w-0 resize-none rounded-2xl bg-stone-100 border border-transparent px-4 py-3 text-sm text-ink-900 placeholder:text-stone-500 focus:outline-none focus:border-tea-600 focus:bg-white transition-colors"
-              />
-              <button
-                type="submit"
-                disabled={!draft.trim() || !isLive}
-                className="w-11 h-11 shrink-0 rounded-full bg-tea-700 text-white inline-flex items-center justify-center hover:bg-tea-800 disabled:opacity-40 transition-colors"
-                aria-label="Send message"
-              >
-                <ArrowUp className="w-5 h-5" />
-              </button>
+              <div className="flex items-end gap-2 rounded-[22px] bg-stone-50 border border-stone-300 pl-4 pr-1.5 py-1.5 transition-[border-color,box-shadow] focus-within:border-tea-600 focus-within:ring-4 focus-within:ring-tea-600/10">
+                <label htmlFor="thread-composer" className="sr-only">Write a message</label>
+                <textarea
+                  id="thread-composer"
+                  ref={textRef}
+                  rows={1}
+                  value={draft}
+                  disabled={!isLive}
+                  onChange={e => setDraft(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      void send(draft);
+                    }
+                  }}
+                  maxLength={4000}
+                  placeholder={isLive ? `Message ${otherName(selected).split(' ')[0]}…` : 'Connect to the server to reply'}
+                  className="flex-1 min-w-0 self-center resize-none bg-transparent border-0 p-0 py-2 text-[15px] leading-6 text-ink-900 placeholder:text-stone-500 focus:outline-none focus:ring-0 disabled:cursor-not-allowed"
+                  style={{ overflowY: 'hidden' }}
+                />
+                <button
+                  type="submit"
+                  disabled={!draft.trim() || !isLive}
+                  className="w-10 h-10 shrink-0 rounded-full inline-flex items-center justify-center transition-colors bg-tea-700 text-white hover:bg-tea-800 disabled:bg-stone-200 disabled:text-stone-500 disabled:cursor-not-allowed"
+                  aria-label="Send message"
+                >
+                  <ArrowUp className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="hidden sm:block mt-1.5 px-2 text-[11px] text-stone-500">
+                Enter to send · Shift + Enter for a new line
+              </p>
             </form>
           </section>
         ) : (
