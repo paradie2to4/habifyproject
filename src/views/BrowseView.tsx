@@ -307,6 +307,7 @@ export const BrowseView: React.FC = () => {
       {/* Sticky filter toolbar */}
       <div
         ref={resultsRef}
+        id="explore-results"
         className="sticky top-16 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-stone-50/85 backdrop-blur-xl border-b border-stone-200 scroll-mt-16"
       >
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">

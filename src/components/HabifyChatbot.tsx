@@ -89,6 +89,16 @@ export const HabifyChatbot: React.FC = () => {
     if (window.innerWidth < 640) setOpen(false);
   };
 
+  /** Go to Explore, close the chat so it doesn't cover the map, and bring the results into view. */
+  const showOnExplore = () => {
+    setOpen(false);
+    navigate('/');
+    // Wait for the filtered list (and the page, if we navigated) to render before scrolling
+    window.setTimeout(() => {
+      document.getElementById('explore-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
+  };
+
   const applyToExplore = (c: SearchCriteria) => {
     resetFilters();
     setFilters(prev => ({
@@ -105,7 +115,7 @@ export const HabifyChatbot: React.FC = () => {
       hasParking: c.parking || undefined,
       selectedAmenities: []
     }));
-    go('/');
+    showOnExplore();
   };
 
   const rankByMatch = (homes: Property[]) =>
@@ -157,12 +167,12 @@ export const HabifyChatbot: React.FC = () => {
           return {
             text: `Nothing matches “${what}” exactly right now. With ${near.dropped}, there ${ranked.length === 1 ? 'is 1 home' : `are ${ranked.length} homes`}:`,
             homes: ranked.slice(0, 3),
-            actions: [{ label: 'Browse everything', run: () => { resetFilters(); go('/'); } }]
+            actions: [{ label: 'Browse everything', run: () => { resetFilters(); showOnExplore(); } }]
           };
         }
         return {
           text: `I couldn’t find anything close to “${what}” yet. New homes are listed regularly, so try again soon or widen your search.`,
-          actions: [{ label: 'Browse all homes', run: () => { resetFilters(); go('/'); }, primary: true }]
+          actions: [{ label: 'Browse all homes', run: () => { resetFilters(); showOnExplore(); }, primary: true }]
         };
       }
 
