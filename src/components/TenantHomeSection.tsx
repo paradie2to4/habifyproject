@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Receipt, Wrench, X, Printer, CheckCircle2, Clock, LoaderCircle } from 'lucide-react';
+import { Home, Receipt, Wrench, X, Printer, CheckCircle2, Clock, LoaderCircle, Smartphone, XCircle } from 'lucide-react';
+import { MobileMoneyPayModal } from './MobileMoneyPayModal';
+import { fetchMomoStatusApi, MomoStatus } from '../services/featuresApi';
 import { useApp } from '../context/AppContext';
 import { LeaseAgreement, MaintenanceTicket, RentPayment } from '../types';
 import { PhotoUploader } from './PhotoUploader';
@@ -58,8 +60,29 @@ export const TenantHomeSection: React.FC = () => {
   const [paying, setPaying] = useState<LeaseAgreement | null>(null);
   const [reporting, setReporting] = useState<LeaseAgreement | null>(null);
   const [receipt, setReceipt] = useState<RentPayment | null>(null);
+  const [momo, setMomo] = useState<MomoStatus | null>(null);
+  const [momoLease, setMomoLease] = useState<LeaseAgreement | null>(null);
+  const [paidId, setPaidId] = useState<string | null>(null);
+
+  const hasLease = !!currentUser && isLive && leases.some(l => l.tenantId === currentUser.id && l.status === 'ACTIVE');
+  useEffect(() => {
+    if (!hasLease) return;
+    fetchMomoStatusApi().then(setMomo).catch(() => setMomo(null));
+  }, [hasLease]);
+
+  // Open the receipt as soon as a mobile-money payment lands in the list
+  useEffect(() => {
+    if (!paidId) return;
+    const p = payments.find(x => x.id === paidId && x.status === 'VERIFIED');
+    if (p) {
+      setMomoLease(null);
+      setReceipt(p);
+      setPaidId(null);
+    }
+  }, [paidId, payments]);
 
   if (!currentUser || !isLive) return null;
+  const canMomo = !!momo && (momo.mtn || momo.airtel);
   const myLeases = leases.filter(l => l.tenantId === currentUser.id);
   const active = myLeases.filter(l => l.status === 'ACTIVE');
   if (myLeases.length === 0) return null;
@@ -116,8 +139,13 @@ export const TenantHomeSection: React.FC = () => {
               </dl>
             </div>
             <div className="flex flex-wrap lg:flex-col gap-2">
-              <button type="button" onClick={() => setPaying(lease)} className="btn-primary rounded-full">
-                <Receipt className="w-4 h-4" /> Report a payment
+              {canMomo && (
+                <button type="button" onClick={() => setMomoLease(lease)} className="btn-primary rounded-full">
+                  <Smartphone className="w-4 h-4" /> Pay with mobile money
+                </button>
+              )}
+              <button type="button" onClick={() => setPaying(lease)} className={`${canMomo ? 'btn-secondary' : 'btn-primary'} rounded-full`}>
+                <Receipt className="w-4 h-4" /> {canMomo ? 'I paid another way' : 'Report a payment'}
               </button>
               <button type="button" onClick={() => setReporting(lease)} className="btn-secondary rounded-full">
                 <Wrench className="w-4 h-4" /> Report a problem
@@ -138,13 +166,18 @@ export const TenantHomeSection: React.FC = () => {
             <ul className="divide-y divide-stone-100">
               {myPayments.slice(0, 8).map(p => (
                 <li key={p.id} className="py-2.5 flex items-center gap-3">
-                  <span className={`w-8 h-8 rounded-xl inline-flex items-center justify-center ${p.status === 'VERIFIED' ? 'bg-tea-50 text-tea-700' : 'bg-saffron-50 text-saffron-800'}`}>
-                    {p.status === 'VERIFIED' ? <CheckCircle2 className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                  <span className={`w-8 h-8 rounded-xl inline-flex items-center justify-center ${p.status === 'VERIFIED' ? 'bg-tea-50 text-tea-700' : p.status === 'FAILED' ? 'bg-stone-100 text-stone-600' : 'bg-saffron-50 text-saffron-800'}`}>
+                    {p.status === 'VERIFIED' ? <CheckCircle2 className="w-4 h-4" /> : p.status === 'FAILED' ? <XCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold text-ink-900">{p.paidForMonth}</span>
                     <span className="block text-xs text-stone-600">
-                      {rwf(p.amountRwf)} · {p.status === 'VERIFIED' ? 'Confirmed' : 'Waiting for your landlord'}
+                      {rwf(p.amountRwf)} ·{' '}
+                      {p.status === 'VERIFIED'
+                        ? p.channel === 'MOBILE_MONEY' ? 'Paid by mobile money' : 'Confirmed'
+                        : p.status === 'FAILED'
+                          ? 'Not completed'
+                          : p.channel === 'MOBILE_MONEY' ? 'Waiting for approval on your phone' : 'Waiting for your landlord'}
                     </span>
                   </span>
                   {p.status === 'VERIFIED' && (
@@ -193,6 +226,9 @@ export const TenantHomeSection: React.FC = () => {
         </div>
       </div>
 
+      {momoLease && momo && (
+        <MobileMoneyPayModal lease={momoLease} status={momo} onClose={() => setMomoLease(null)} onPaid={id => setPaidId(id)} />
+      )}
       {paying && <ReportPaymentModal lease={paying} onClose={() => setPaying(null)} onSave={recordPayment} />}
       {reporting && <ReportProblemModal lease={reporting} onClose={() => setReporting(null)} onSave={addMaintenanceTicket} />}
       {receipt && <ReceiptModal payment={receipt} lease={myLeases.find(l => l.id === receipt.leaseId)} onClose={() => setReceipt(null)} />}

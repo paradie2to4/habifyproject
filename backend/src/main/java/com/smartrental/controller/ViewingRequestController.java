@@ -25,13 +25,16 @@ public class ViewingRequestController {
     private final NotificationService notifications;
     private final PropertyRepository properties;
     private final UserRepository users;
+    private final com.smartrental.service.ViewingCalendarService calendar;
 
     public ViewingRequestController(ViewingRequestService requestService, NotificationService notifications,
-                                    PropertyRepository properties, UserRepository users) {
+                                    PropertyRepository properties, UserRepository users,
+                                    com.smartrental.service.ViewingCalendarService calendar) {
         this.requestService = requestService;
         this.notifications = notifications;
         this.properties = properties;
         this.users = users;
+        this.calendar = calendar;
     }
 
     @GetMapping("/tenant/{tenantId}")
@@ -52,9 +55,9 @@ public class ViewingRequestController {
         Property property = properties.findById(req.getPropertyId() == null ? "" : req.getPropertyId())
                 .orElseThrow(() -> ApiException.notFound("Property"));
         if (user.id().equals(property.getLandlordId())) throw ApiException.badRequest("You can’t book a viewing of your own listing");
-        if (req.getRequestedDate() == null || req.getRequestedTimeSlot() == null) {
-            throw ApiException.badRequest("Choose a date and a time slot");
-        }
+        // Only open slots in the landlord's calendar can be booked (no double bookings)
+        calendar.requireOpenSlot(property.getId(), req.getRequestedDate(), req.getRequestedTimeSlot(), null);
+        req.setRequestedTimeSlot(com.smartrental.service.ViewingCalendarService.startTime(req.getRequestedTimeSlot()).toString());
         User me = users.findById(user.id()).orElseThrow(() -> ApiException.notFound("User"));
 
         req.setId(null);
@@ -70,7 +73,7 @@ public class ViewingRequestController {
         ViewingRequest saved = requestService.createViewingRequest(req);
         notifications.notify(property.getLandlordId(), "VIEWING_REQUESTED",
                 "New viewing request for “" + property.getTitle() + "”",
-                me.getFullName() + " would like to visit on " + saved.getRequestedDate() + " at " + saved.getRequestedTimeSlot() + ".",
+                me.getFullName() + " would like to visit on " + com.smartrental.service.ViewingCalendarService.pretty(saved) + ".",
                 "/landlord?tab=viewings", true);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }

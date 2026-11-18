@@ -213,6 +213,9 @@ public class TenancyService {
         RentPayment p = payments.findById(id).orElseThrow(() -> ApiException.notFound("Payment"));
         if (!user.canActFor(p.getLandlordId())) throw ApiException.forbidden();
         if ("VERIFIED".equals(p.getStatus())) return p;
+        if ("MOBILE_MONEY".equals(p.getChannel())) {
+            throw ApiException.badRequest("Mobile-money payments confirm themselves once the tenant approves them on their phone.");
+        }
         p.setStatus("VERIFIED");
         RentPayment saved = payments.save(p);
         applyToLease(lease(p.getLeaseId()), saved);
@@ -221,6 +224,12 @@ public class TenancyService {
                 "Your landlord confirmed " + String.format("%,.0f", p.getAmountRwf()) + " RWF for " + p.getPaidForMonth() + ".",
                 "/dashboard", true);
         return saved;
+    }
+
+    /** A payment confirmed outside the normal record/confirm flow (e.g. mobile money) updates its lease too. */
+    @Transactional
+    public void applyVerifiedPayment(RentPayment p) {
+        leases.findById(p.getLeaseId()).ifPresent(l -> applyToLease(l, p));
     }
 
     private void applyToLease(Lease l, RentPayment p) {

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { SharedShortlistView } from './views/SharedShortlistView';
 import { Routes, Route, useLocation, matchPath } from 'react-router-dom';
 import { PROPERTY_ROUTE } from './routes';
 import { PropertyPage } from './views/PropertyPage';
@@ -104,6 +105,7 @@ const AppContent: React.FC = () => {
           <Route path="/forgot-password" element={<ForgotPasswordView />} />
           <Route path="/reset-password" element={<ResetPasswordView />} />
           <Route path="/verify-email" element={<VerifyEmailView />} />
+          <Route path="/s/:token" element={<SharedShortlistView />} />
           <Route path="*" element={renderActiveView()} />
         </Routes>
       </main>

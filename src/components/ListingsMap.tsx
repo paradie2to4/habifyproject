@@ -11,6 +11,8 @@ interface ListingsMapProps {
   single?: boolean;
   /** Driving route to draw (single mode): path as [lat, lng] points plus the starting point. */
   route?: { path: [number, number][]; origin: [number, number] } | null;
+  /** Small coloured dots for nearby places (single mode). */
+  pois?: { id: string; lat: number; lng: number; color: string; title: string }[];
   className?: string;
 }
 
@@ -33,9 +35,11 @@ export const ListingsMap: React.FC<ListingsMapProps> = ({
   onSelect,
   single = false,
   route = null,
+  pois,
   className = ''
 }) => {
   const routeLayerRef = useRef<L.LayerGroup | null>(null);
+  const poiLayerRef = useRef<L.LayerGroup | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -59,6 +63,7 @@ export const ListingsMap: React.FC<ListingsMapProps> = ({
     }).addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
     routeLayerRef.current = L.layerGroup().addTo(map);
+    poiLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
     // Leaflet measures its container on init; re-measure once layout settles
@@ -137,6 +142,18 @@ export const ListingsMap: React.FC<ListingsMapProps> = ({
     }).addTo(layer);
     map.fitBounds(L.latLngBounds(route.path), { padding: [36, 36] });
   }, [route]);
+
+  // Nearby places as small dots with a tooltip
+  useEffect(() => {
+    const layer = poiLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    (pois || []).forEach(p => {
+      L.circleMarker([p.lat, p.lng], { radius: 6, color: '#ffffff', weight: 2, fillColor: p.color, fillOpacity: 1 })
+        .bindTooltip(p.title, { direction: 'top', offset: [0, -6] })
+        .addTo(layer);
+    });
+  }, [pois]);
 
   // Highlight the active marker without rebuilding
   useEffect(() => {

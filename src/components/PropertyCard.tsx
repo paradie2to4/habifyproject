@@ -2,7 +2,8 @@ import React from 'react';
 import { Property } from '../types';
 import { useApp } from '../context/AppContext';
 import { PropertyImage } from './PropertyImage';
-import { MapPin, Heart, BedDouble, Bath, Ruler, Sparkles, Sofa } from 'lucide-react';
+import { MapPin, Heart, BedDouble, Bath, Ruler, Sparkles, Sofa, Car } from 'lucide-react';
+import { formatCommute } from '../services/places';
 
 interface PropertyCardProps {
   property: Property;
@@ -11,6 +12,9 @@ interface PropertyCardProps {
   /** Highlighted because its map pin is hovered. */
   active?: boolean;
   onHoverChange?: (id: string | null) => void;
+  /** Drive time to the visitor's workplace in seconds (null = no road route, undefined = not known). */
+  commuteS?: number | null;
+  commuteLabel?: string;
 }
 
 function matchTone(score: number) {
@@ -24,7 +28,9 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
   onSelect,
   showLandlordControls = false,
   active = false,
-  onHoverChange
+  onHoverChange,
+  commuteS,
+  commuteLabel
 }) => {
   const { currentUser, isFavorite, toggleFavorite, getMatchExplanation, getListingQuality, openModal } = useApp();
 
@@ -131,6 +137,16 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
             {property.district ? `, ${property.district}` : ''}
           </span>
         </p>
+
+        {commuteS !== undefined && (
+          <p
+            className="text-xs font-medium text-tea-800 flex items-center gap-1.5"
+            title={commuteLabel ? `Driving time to ${commuteLabel}, without traffic` : 'Driving time, without traffic'}
+          >
+            <Car className="w-3.5 h-3.5 shrink-0" aria-hidden />
+            {commuteS == null ? 'No road route found' : `${formatCommute(commuteS)} drive${commuteLabel ? ` to ${commuteLabel}` : ''}`}
+          </p>
+        )}
 
         <div className="mt-auto pt-3 flex items-center gap-4 text-xs text-ink-700 border-t border-stone-100">
           <span className="inline-flex items-center gap-1.5">

@@ -3,6 +3,8 @@ import { useApp } from '../context/AppContext';
 import { PropertyCard } from '../components/PropertyCard';
 import { EmptyState } from '../components/EmptyState';
 import { TenantHomeSection } from '../components/TenantHomeSection';
+import { SavedSearchesSection } from '../components/SavedSearchesSection';
+import { ViewingActions, clockLabel } from '../components/ViewingCalendar';
 import { DashboardHero, heroGhostBtn, heroPrimaryBtn, todayLabel } from '../components/DashboardHero';
 import {
   Heart,
@@ -182,6 +184,8 @@ export const TenantDashboardView: React.FC = () => {
         )}
       </section>
 
+      <SavedSearchesSection />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <section>
           <div className="flex items-end justify-between gap-4 mb-4">
@@ -209,10 +213,13 @@ export const TenantDashboardView: React.FC = () => {
                       <Calendar className="w-3 h-3" />
                       {v.requestedDate}
                       <Clock className="w-3 h-3 ml-1" />
-                      {v.requestedTimeSlot}
+                      {/^\d{2}:\d{2}$/.test(v.requestedTimeSlot) ? clockLabel(v.requestedTimeSlot) : v.requestedTimeSlot}
+                      <span className="ml-1 capitalize text-stone-700">· {v.status.toLowerCase()}</span>
                     </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <ViewingActions viewing={v} compact />
+                    </div>
                   </div>
-                  <span className="text-xs text-stone-700 capitalize">{v.status.toLowerCase()}</span>
                 </li>
               ))}
             </ul>

@@ -18,8 +18,14 @@ import {
   Building,
   ArrowDownWideNarrow,
   Wifi,
-  WifiOff
+  WifiOff,
+  Briefcase,
+  BellPlus,
+  Check
 } from 'lucide-react';
+import { WorkplacePicker } from '../components/WorkplacePicker';
+import { commuteTimes, loadWorkplace, Workplace, WORKPLACE_EVENT } from '../services/places';
+import { createSavedSearchApi } from '../services/featuresApi';
 
 const PROPERTY_TYPES: Array<{ value: string; label: string }> = [
   { value: 'APARTMENT', label: 'Apartment' },
@@ -89,8 +95,100 @@ export const BrowseView: React.FC = () => {
     openModal,
     currentUser,
     setCurrentTab,
-    backendStatus
+    backendStatus,
+    properties,
+    isLive,
+    addToast
   } = useApp();
+
+  // ---- Commute: drive time from each home to the visitor's workplace
+  const [workplace, setWorkplace] = useState<Workplace | null>(() => loadWorkplace());
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [commute, setCommute] = useState<Record<string, number | null>>({});
+  const [commuteError, setCommuteError] = useState('');
+  const [sortCommute, setSortCommute] = useState(false);
+
+  useEffect(() => {
+    const onChange = (e: Event) => {
+      const w = (e as CustomEvent<Workplace | null>).detail;
+      setWorkplace(w);
+      setCommute({});
+      setSortCommute(!!w);
+    };
+    window.addEventListener(WORKPLACE_EVENT, onChange);
+    return () => window.removeEventListener(WORKPLACE_EVENT, onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!workplace) return;
+    const todo = results
+      .filter(p => !(p.id in commute) && Number.isFinite(p.latitude) && Number.isFinite(p.longitude))
+      .slice(0, 270)
+      .map(p => ({ id: p.id, lat: p.latitude, lng: p.longitude }));
+    if (!todo.length) return;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => {
+      commuteTimes(workplace, todo, ctrl.signal)
+        .then(r => {
+          setCommuteError('');
+          setCommute(prev => ({ ...prev, ...r }));
+        })
+        .catch(e => !ctrl.signal.aborted && setCommuteError((e as Error).message));
+    }, 250);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workplace, results]);
+
+  const ordered = useMemo(() => {
+    if (!sortCommute || !workplace) return results;
+    const v = (id: string) => (commute[id] == null ? Infinity : commute[id]!);
+    return [...results].sort((a, b) => v(a.id) - v(b.id));
+  }, [results, sortCommute, workplace, commute]);
+
+  // ---- Save this search (alerts when a new home matches)
+  const [savingSearch, setSavingSearch] = useState(false);
+  const [savedSearchKey, setSavedSearchKey] = useState('');
+  const knownSectors = useMemo(() => new Map(properties.map(p => [p.locationSector.toLowerCase(), p.locationSector])), [properties]);
+  const filtersKey = JSON.stringify({ ...filters, sortBy: '' });
+
+  const saveSearch = async () => {
+    if (!currentUser) {
+      addToast('info', 'Sign in to save this search and get alerts for new homes.');
+      setCurrentTab('LOGIN');
+      return;
+    }
+    if (!isLive) {
+      addToast('warning', 'Saved searches need the live server. Please try again in a moment.');
+      return;
+    }
+    const sectors = new Set<string>();
+    if (filters.selectedLocation) sectors.add(filters.selectedLocation);
+    const q = knownSectors.get(filters.searchQuery.trim().toLowerCase());
+    if (q) sectors.add(q);
+    setSavingSearch(true);
+    try {
+      const s = await createSavedSearchApi({
+        sectors: [...sectors],
+        province: filters.selectedProvince || undefined,
+        district: filters.selectedDistrict || undefined,
+        propertyType: filters.propertyType || undefined,
+        maxRent: filters.maxPrice < MAX_PRICE ? filters.maxPrice : undefined,
+        minBedrooms: filters.minBedrooms || undefined,
+        furnished: filters.isFurnished || undefined,
+        parking: filters.hasParking || undefined,
+        amenities: filters.selectedAmenities
+      });
+      setSavedSearchKey(filtersKey);
+      addToast('success', `Saved “${s.name}”. We’ll let you know when a new home matches.`);
+    } catch (e) {
+      addToast('error', (e as Error).message);
+    } finally {
+      setSavingSearch(false);
+    }
+  };
 
   const [layout, setLayout] = useState<Layout>('split');
   const [mobileMap, setMobileMap] = useState(false);
@@ -101,7 +199,7 @@ export const BrowseView: React.FC = () => {
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const loading = backendStatus === 'connecting';
-  const shown = useMemo(() => results.slice(0, visible), [results, visible]);
+  const shown = useMemo(() => ordered.slice(0, visible), [ordered, visible]);
   const hasMore = visible < results.length;
 
   // New filters → start from the first batch
@@ -354,6 +452,16 @@ export const BrowseView: React.FC = () => {
 
           <button
             type="button"
+            onClick={() => setPickerOpen(true)}
+            className={`${chipBase} ${workplace ? chipOn : chipIdle}`}
+            title={workplace ? `Drive times to ${workplace.label}` : 'Show drive times to your work or school'}
+          >
+            <Briefcase className="w-4 h-4" />
+            {workplace ? `Commute: ${workplace.label}` : 'Commute'}
+          </button>
+
+          <button
+            type="button"
             onClick={() => setDrawerOpen(true)}
             className={`${chipBase} ${moreCount ? chipOn : chipIdle}`}
           >
@@ -367,10 +475,24 @@ export const BrowseView: React.FC = () => {
           </button>
 
           <div className="ml-auto flex items-center gap-2 pl-2">
-            <ChipSelect label="Sort by" value={filters.sortBy} active={false} onChange={v => set('sortBy', v as FilterState['sortBy'])}>
+            <ChipSelect
+              label="Sort by"
+              value={sortCommute && workplace ? 'COMMUTE' : filters.sortBy}
+              active={false}
+              onChange={v => {
+                if (v === 'COMMUTE') {
+                  if (workplace) setSortCommute(true);
+                  else setPickerOpen(true);
+                  return;
+                }
+                setSortCommute(false);
+                set('sortBy', v as FilterState['sortBy']);
+              }}
+            >
               {SORTS.map(s => (
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
+              <option value="COMMUTE">Shortest commute</option>
             </ChipSelect>
 
             <div className="hidden lg:flex items-center p-1 rounded-full bg-white border border-stone-300" role="group" aria-label="Layout">
@@ -428,6 +550,19 @@ export const BrowseView: React.FC = () => {
               Clear all
             </button>
           )}
+          {commuteError && workplace && <span className="text-xs text-stone-600">{commuteError}</span>}
+          {!loading && activeChips.length > 0 && (
+            <button
+              type="button"
+              onClick={saveSearch}
+              disabled={savingSearch || savedSearchKey === filtersKey}
+              className="ml-auto inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-xs font-semibold border border-tea-600 text-tea-800 hover:bg-tea-50 disabled:opacity-70"
+              title="Get an alert when a new home matches these filters"
+            >
+              {savedSearchKey === filtersKey ? <Check className="w-3.5 h-3.5" /> : <BellPlus className="w-3.5 h-3.5" />}
+              {savedSearchKey === filtersKey ? 'Search saved' : savingSearch ? 'Saving…' : 'Save search'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -449,6 +584,8 @@ export const BrowseView: React.FC = () => {
                     property={property}
                     active={hoveredId === property.id}
                     onHoverChange={setHoveredId}
+                    commuteS={workplace && property.id in commute ? commute[property.id] : undefined}
+                    commuteLabel={workplace?.label}
                   />
                 ))}
               </div>
@@ -502,6 +639,8 @@ export const BrowseView: React.FC = () => {
         {mobileMap ? <LayoutGrid className="w-4 h-4" /> : <MapIcon className="w-4 h-4" />}
         {mobileMap ? 'Show list' : 'Show map'}
       </button>
+
+      {pickerOpen && <WorkplacePicker current={workplace} onClose={() => setPickerOpen(false)} />}
 
       {/* More-filters drawer */}
       {drawerOpen && (

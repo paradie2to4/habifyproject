@@ -16,9 +16,11 @@ import java.util.List;
 public class PropertyController {
 
     private final PropertyService propertyService;
+    private final com.smartrental.service.SavedSearchService savedSearches;
 
-    public PropertyController(PropertyService propertyService) {
+    public PropertyController(PropertyService propertyService, com.smartrental.service.SavedSearchService savedSearches) {
         this.propertyService = propertyService;
+        this.savedSearches = savedSearches;
     }
 
     @GetMapping
@@ -56,13 +58,18 @@ public class PropertyController {
             property.setLandlordId(user.id());
         }
         property.setId(null);
-        return ResponseEntity.status(HttpStatus.CREATED).body(propertyService.createProperty(property));
+        Property created = propertyService.createProperty(property);
+        savedSearches.onListingAvailable(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Property> updateProperty(@PathVariable String id, @RequestBody Property property) {
-        requireOwner(id);
-        return ResponseEntity.ok(propertyService.updateProperty(id, property));
+        boolean wasAvailable = Boolean.TRUE.equals(requireOwner(id).getIsAvailable());
+        Property saved = propertyService.updateProperty(id, property);
+        // A home that comes back on the market is news for people searching for it
+        if (!wasAvailable) savedSearches.onListingAvailable(saved);
+        return ResponseEntity.ok(saved);
     }
 
     @DeleteMapping("/{id}")
@@ -72,9 +79,10 @@ public class PropertyController {
         return ResponseEntity.noContent().build();
     }
 
-    private void requireOwner(String propertyId) {
+    private Property requireOwner(String propertyId) {
         Property existing = propertyService.findById(propertyId)
                 .orElseThrow(() -> ApiException.notFound("Property"));
         CurrentUser.requireSelfOrAdmin(existing.getLandlordId());
+        return existing;
     }
 }

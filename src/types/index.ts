@@ -250,8 +250,12 @@ export interface RentPayment {
   /** yyyy-MM */
   period?: string;
   paymentDate: string;
-  status: 'VERIFIED' | 'PENDING';
+  status: 'VERIFIED' | 'PENDING' | 'FAILED';
   notes?: string;
+  /** MANUAL (reported by the tenant) or MOBILE_MONEY (paid through Habify) */
+  channel?: 'MANUAL' | 'MOBILE_MONEY';
+  providerStatus?: 'REQUESTED' | 'SUCCESSFUL' | 'FAILED';
+  failureReason?: string;
 }
 
 export interface MaintenanceTicket {

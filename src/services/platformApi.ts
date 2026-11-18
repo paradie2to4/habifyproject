@@ -126,7 +126,10 @@ const mapPayment = (p: Raw): RentPayment => ({
   period: p.period || undefined,
   paymentDate: p.paymentDate || '',
   status: p.status,
-  notes: p.notes || undefined
+  notes: p.notes || undefined,
+  channel: p.channel || 'MANUAL',
+  providerStatus: p.providerStatus || undefined,
+  failureReason: p.failureReason || undefined
 });
 
 const mapTicket = (t: Raw): MaintenanceTicket => ({

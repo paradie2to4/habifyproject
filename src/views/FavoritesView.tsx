@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { PropertyCard } from '../components/PropertyCard';
 import { EmptyState } from '../components/EmptyState';
+import { ShortlistsPanel } from '../components/ShortlistsPanel';
 import { Heart, Layers, CheckSquare, Square } from 'lucide-react';
 
 export const FavoritesView: React.FC = () => {
@@ -50,6 +51,10 @@ export const FavoritesView: React.FC = () => {
           </button>
         )}
       </header>
+
+      {savedProperties.length > 0 && (
+        <ShortlistsPanel homeIds={savedProperties.map(p => p.id)} selectedIds={selectedForCompare} />
+      )}
 
       {savedProperties.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

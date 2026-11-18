@@ -222,8 +222,10 @@ class CompleteFlowsIntegrationTest {
     @Test
     void viewingNotificationsReachBothSides() throws Exception {
         String ll = landlord(), tt = tenant();
+        JsonNode day = read(mvc.perform(get("/api/properties/prop-01/viewing-slots?days=7"))).get(0);
         JsonNode v = read(postJson("/api/viewing-requests", tt,
-                "{\"propertyId\":\"prop-01\",\"requestedDate\":\"2030-01-10\",\"requestedTimeSlot\":\"10:00\"}")
+                "{\"propertyId\":\"prop-01\",\"requestedDate\":\"" + day.get("date").asText()
+                        + "\",\"requestedTimeSlot\":\"" + day.get("slots").get(0).get("time").asText() + "\"}")
                 .andExpect(status().isCreated()));
         mvc.perform(get("/api/notifications").header("Authorization", ll))
                 .andExpect(jsonPath("$.items[0].type").value("VIEWING_REQUESTED"));

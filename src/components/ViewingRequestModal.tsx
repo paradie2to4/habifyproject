@@ -11,6 +11,7 @@ import {
   User,
   MessageSquare
 } from 'lucide-react';
+import { SlotPicker, clockLabel } from './ViewingCalendar';
 
 interface ViewingRequestModalProps {
   property: Property;
@@ -25,7 +26,7 @@ const TIME_SLOTS = [
 ];
 
 export const ViewingRequestModal: React.FC<ViewingRequestModalProps> = ({ property }) => {
-  const { currentUser, createViewingRequest, closeModal } = useApp();
+  const { currentUser, createViewingRequest, closeModal, isLive } = useApp();
 
   // Pick tomorrow's date by default
   const tomorrow = new Date();
@@ -35,10 +36,12 @@ export const ViewingRequestModal: React.FC<ViewingRequestModalProps> = ({ proper
   const [requestedDate, setRequestedDate] = useState(minDateStr);
   const [requestedTimeSlot, setRequestedTimeSlot] = useState(TIME_SLOTS[1]);
   const [notes, setNotes] = useState('');
-  const [phone, setPhone] = useState(currentUser?.phoneNumber || '+250 788 345 678');
+  const [phone, setPhone] = useState(currentUser?.phoneNumber || '');
+  const [slot, setSlot] = useState<{ date: string; time: string } | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLive && !slot) return;
     if (!requestedDate) return;
 
     createViewingRequest({
@@ -52,8 +55,8 @@ export const ViewingRequestModal: React.FC<ViewingRequestModalProps> = ({ proper
       tenantEmail: currentUser?.email || 'tenant@smartrental.rw',
       tenantPhone: phone,
       landlordId: property.landlordId,
-      requestedDate,
-      requestedTimeSlot,
+      requestedDate: isLive && slot ? slot.date : requestedDate,
+      requestedTimeSlot: isLive && slot ? slot.time : requestedTimeSlot,
       notes: notes.trim() ? notes : 'Looking forward to viewing the apartment.'
     });
 
@@ -107,6 +110,18 @@ export const ViewingRequestModal: React.FC<ViewingRequestModalProps> = ({ proper
             </div>
           </div>
 
+          {isLive ? (
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-ink-700 mb-2">Pick a time the landlord is free *</p>
+              <SlotPicker propertyId={property.id} value={slot} onChange={setSlot} />
+              {slot && (
+                <p className="mt-2 text-xs text-tea-800 font-semibold">
+                  {new Date(slot.date + 'T00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })} at {clockLabel(slot.time)}
+                </p>
+              )}
+            </div>
+          ) : (
+          <>
           {/* Date Picker */}
           <div>
             <label className="text-xs font-bold uppercase tracking-wider text-ink-700 block mb-1">
@@ -145,6 +160,8 @@ export const ViewingRequestModal: React.FC<ViewingRequestModalProps> = ({ proper
               ))}
             </div>
           </div>
+          </>
+          )}
 
           {/* Contact Phone */}
           <div>
@@ -190,7 +207,8 @@ export const ViewingRequestModal: React.FC<ViewingRequestModalProps> = ({ proper
 
             <button
               type="submit"
-              className="flex items-center gap-1.5 px-6 py-2.5 rounded-lg text-xs font-bold bg-tea-700 hover:bg-tea-800 text-white transition-all"
+              disabled={isLive && !slot}
+              className="disabled:opacity-50 flex items-center gap-1.5 px-6 py-2.5 rounded-lg text-xs font-bold bg-tea-700 hover:bg-tea-800 text-white transition-all"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>Send Request</span>

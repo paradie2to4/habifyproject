@@ -50,6 +50,10 @@ public class SecurityConfig {
                 // Public
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/actuator/health/**", "/actuator/info", "/h2-console/**", "/error").permitAll()
+                // Shared shortlist links (view + vote) and the assistant work without an account
+                .requestMatchers("/api/public/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/assistant/status").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/assistant/chat").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register",
                         "/api/auth/password/forgot", "/api/auth/password/reset", "/api/auth/verify/confirm").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/properties/**", "/api/tools/**", "/api/uploads/*").permitAll()

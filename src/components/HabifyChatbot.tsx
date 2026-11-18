@@ -14,8 +14,11 @@ import {
   relax,
   fmt,
   FAQ,
-  SearchCriteria
+  SearchCriteria,
+  parseCriteria,
+  hasCriteria
 } from '../services/assistantEngine';
+import { askAssistantApi, assistantAvailable, AssistantTurn } from '../services/featuresApi';
 
 interface Action {
   label: string;
@@ -58,6 +61,11 @@ export const HabifyChatbot: React.FC = () => {
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Claude on the server, when it's switched on; otherwise the built-in assistant answers
+  const [aiOn, setAiOn] = useState(false);
+  useEffect(() => {
+    if (open) assistantAvailable().then(setAiOn);
+  }, [open, app.isLive]);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const firstName = currentUser?.fullName?.split(' ')[0];
@@ -302,16 +310,50 @@ export const HabifyChatbot: React.FC = () => {
     }
   };
 
-  const send = (raw: string) => {
+  /** Questions the built-in assistant answers best, because they lead straight to a screen or action. */
+  const handledLocally = (text: string) => {
+    const intent = detectIntent(text, { onPropertyPage: !!currentHome });
+    return (
+      intent.kind === 'greeting' ||
+      intent.kind === 'thanks' ||
+      intent.kind === 'my-viewings' ||
+      intent.kind === 'my-messages' ||
+      intent.kind === 'improve-listing' ||
+      (intent.kind === 'this-home' && intent.topic !== 'general')
+    );
+  };
+
+  const askClaude = async (text: string): Promise<Omit<ChatMessage, 'id' | 'role'>> => {
+    const history: AssistantTurn[] = [
+      ...messages.slice(-10).map(m => ({ role: m.role === 'user' ? ('user' as const) : ('assistant' as const), content: m.text })),
+      { role: 'user', content: text }
+    ];
+    const res = await askAssistantApi(history, currentHome?.id);
+    const homes = res.homeIds.map(id => properties.find(p => p.id === id)).filter((p): p is Property => !!p);
+    const c = parseCriteria(text);
+    const actions: Action[] = [];
+    if (homes.length > 1 && hasCriteria(c)) actions.push({ label: 'Show all on Explore', run: () => applyToExplore(c), primary: true });
+    return { text: res.reply, homes, actions };
+  };
+
+  const send = async (raw: string) => {
     const text = raw.trim();
     if (!text || typing) return;
     setMessages(prev => [...prev, { id: uid(), role: 'user', text }]);
     setInput('');
     setTyping(true);
-    window.setTimeout(() => {
-      setMessages(prev => [...prev, { id: uid(), role: 'bot', ...reply(text) }]);
-      setTyping(false);
-    }, 450);
+    let answer: Omit<ChatMessage, 'id' | 'role'> | null = null;
+    if (aiOn && !handledLocally(text)) {
+      try {
+        answer = await askClaude(text);
+      } catch {
+        answer = null; // busy, rate-limited or offline: fall back to the built-in assistant
+      }
+    } else {
+      await new Promise(r => window.setTimeout(r, 450));
+    }
+    setMessages(prev => [...prev, { id: uid(), role: 'bot', ...(answer || reply(text)) }]);
+    setTyping(false);
   };
 
   const welcome = currentHome
@@ -336,7 +378,7 @@ export const HabifyChatbot: React.FC = () => {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold leading-tight">Habify Assist</p>
-              <p className="text-[11px] text-tea-100 truncate">Finds homes, checks budgets, answers questions</p>
+              <p className="text-[11px] text-tea-100 truncate">{aiOn ? 'AI assistant · answers can be wrong, check the listing' : 'Finds homes, checks budgets, answers questions'}</p>
             </div>
             {messages.length > 0 && (
               <button type="button" onClick={() => setMessages([])} className="p-2 rounded-lg text-tea-100 hover:text-white hover:bg-white/10" aria-label="Start a new conversation" title="New conversation">

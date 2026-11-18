@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { AvailabilityEditor } from '../components/AvailabilityEditor';
+import { ViewingActions, clockLabel } from '../components/ViewingCalendar';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Property, ViewingRequest, Inquiry, LeaseAgreement, RentPayment, MaintenanceTicket } from '../types';
@@ -204,6 +206,7 @@ export const LandlordDashboardView: React.FC = () => {
   // Filtered Viewings
   const filteredViewings = myViewings.filter(v => {
     if (viewingStatusFilter === 'ALL') return true;
+    if (viewingStatusFilter === 'APPROVED') return v.status === 'APPROVED' || (v.status as string) === 'CONFIRMED';
     return v.status === viewingStatusFilter;
   });
 
@@ -635,7 +638,7 @@ export const LandlordDashboardView: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-1.5 flex-wrap">
-              {['ALL', 'PENDING', 'CONFIRMED', 'REJECTED'].map(st => (
+              {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map(st => (
                 <button
                   key={st}
                   onClick={() => setViewingStatusFilter(st)}
@@ -651,10 +654,12 @@ export const LandlordDashboardView: React.FC = () => {
             </div>
           </div>
 
+          <AvailabilityEditor />
+
           {filteredViewings.length > 0 ? (
             <div className="space-y-3.5">
               {filteredViewings.map(v => {
-                const phoneNum = v.tenantPhone || '+250 788 345 678';
+                const phoneNum = v.tenantPhone || '';
                 const cleanPhone = phoneNum.replace(/[^0-9]/g, '');
 
                 return (
@@ -675,7 +680,7 @@ export const LandlordDashboardView: React.FC = () => {
                             className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
                               v.status === 'PENDING'
                                 ? 'bg-saffron-100 text-saffron-800'
-                                : v.status === 'CONFIRMED'
+                                : v.status === 'APPROVED' || (v.status as string) === 'CONFIRMED'
                                 ? 'bg-tea-100 text-tea-800'
                                 : 'bg-red-50 text-red-800'
                             }`}
@@ -693,7 +698,7 @@ export const LandlordDashboardView: React.FC = () => {
                         <div className="text-xs text-stone-700 flex items-center gap-2 mt-1">
                           <span className="flex items-center gap-1 font-bold text-ink-900">
                             <Clock className="w-3.5 h-3.5 text-ink-700" />
-                            {v.requestedDate} @ {v.requestedTimeSlot}
+                            {v.requestedDate} @ {/^\d{2}:\d{2}$/.test(v.requestedTimeSlot) ? clockLabel(v.requestedTimeSlot) : v.requestedTimeSlot}
                           </span>
                           <span>•</span>
                           <span className="text-stone-600">{v.propertyLocation}</span>
@@ -709,6 +714,7 @@ export const LandlordDashboardView: React.FC = () => {
 
                     <div className="flex items-center gap-2 w-full lg:w-auto justify-end flex-wrap">
                       {/* Direct Contact Links */}
+                      {cleanPhone && (<>
                       <a
                         href={`tel:${phoneNum}`}
                         className="px-3 py-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-xs font-bold text-ink-700 transition-colors flex items-center gap-1.5"
@@ -728,6 +734,8 @@ export const LandlordDashboardView: React.FC = () => {
                         <MessageSquare className="w-3.5 h-3.5 text-tea-700" />
                         <span>WhatsApp</span>
                       </a>
+                      </>)}
+                      <ViewingActions viewing={v} asLandlord compact />
 
                       {v.status === 'PENDING' ? (
                         <>
@@ -1082,7 +1090,15 @@ export const LandlordDashboardView: React.FC = () => {
                       <td className="p-3 text-ink-700">{pay.paidForMonth}</td>
                       <td className="p-3 text-stone-600">{pay.paymentDate}</td>
                       <td className="p-3 text-right">
-                        {pay.status === 'PENDING' ? (
+                        {pay.status === 'FAILED' ? (
+                          <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 font-semibold text-[11px]" title={pay.failureReason}>
+                            Mobile money not completed
+                          </span>
+                        ) : pay.status === 'PENDING' && pay.channel === 'MOBILE_MONEY' ? (
+                          <span className="px-2 py-0.5 rounded-full bg-saffron-100 text-saffron-800 font-semibold text-[11px]">
+                            Waiting for tenant to approve on phone
+                          </span>
+                        ) : pay.status === 'PENDING' ? (
                           <div className="flex items-center justify-end gap-2">
                             <span className="px-2 py-0.5 rounded-full bg-saffron-100 text-saffron-800 font-semibold text-[11px]" title={`Reported by the tenant · ref ${pay.transactionReference}`}>
                               Reported by tenant

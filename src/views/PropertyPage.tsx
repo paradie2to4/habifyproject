@@ -7,6 +7,7 @@ import { normalizeImageList } from '../utils/images';
 import { PropertyImage } from '../components/PropertyImage';
 import { PropertyCard } from '../components/PropertyCard';
 import { PropertyDirections } from '../components/PropertyDirections';
+import { NearbyPlaces } from '../components/NearbyPlaces';
 import {
   ArrowLeft,
   Heart,
@@ -422,6 +423,8 @@ export const PropertyPage: React.FC = () => {
 
           {/* Location and driving directions */}
           <PropertyDirections property={property} />
+
+          <NearbyPlaces property={property} />
 
           {/* Landlord */}
           <section className="flex flex-col sm:flex-row sm:items-center gap-5 rounded-2xl border border-stone-200 bg-white p-6">

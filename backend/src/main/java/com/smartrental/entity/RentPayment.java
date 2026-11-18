@@ -74,6 +74,24 @@ public class RentPayment {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    /** MANUAL (recorded/reported by people) or MOBILE_MONEY (collected through MTN / Airtel) */
+    @Column(length = 20)
+    private String channel = "MANUAL";
+
+    /** Provider's id for a mobile-money collection request */
+    @Column(name = "external_reference", length = 64)
+    private String externalReference;
+
+    /** REQUESTED, SUCCESSFUL, FAILED — provider-side state of a mobile-money request */
+    @Column(name = "provider_status", length = 20)
+    private String providerStatus;
+
+    @Column(name = "payer_phone", length = 20)
+    private String payerPhone;
+
+    @Column(name = "failure_reason")
+    private String failureReason;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 }
